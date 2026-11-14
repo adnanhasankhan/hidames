@@ -1,0 +1,324 @@
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta name="description" content="Play classic Ludo on HIDAMES. Roll the dice, move your tokens, and rule the board.">
+
+    <meta name="theme-color" content="#0c0c10">
+
+    <title>HIDAMES | Ludo</title>
+
+    <!-- LUDO CSS -->
+    <link rel="stylesheet" href="ludo.css">
+</head>
+
+<body>
+
+    <!-- NAVIGATION -->
+    <header class="topbar">
+
+        <a href="index.html" class="home-btn">
+            <span aria-hidden="true">←</span> Home
+        </a>
+
+        <a href="index.html" class="brand" aria-label="HIDAMES Home">
+            HID<span>AMES</span>
+        </a>
+
+        <div class="online-status">
+            <span class="status-dot" aria-hidden="true"></span>
+            GAME ROOM
+        </div>
+
+    </header>
+
+    <main class="page-container">
+
+        <!-- INTRO -->
+        <section class="intro">
+
+            <p class="eyebrow">THE CLASSIC BOARD GAME</p>
+
+            <h1>LU<span>DO</span></h1>
+
+            <p>Roll the dice. Make your move. Rule the board.</p>
+
+        </section>
+
+        <!-- GAME LAYOUT -->
+        <section class="game-layout">
+
+            <!-- PLAYER PANEL -->
+            <aside class="player-panel">
+
+                <div class="panel-heading">
+                    <span>PLAYERS</span>
+                    <span class="player-count">4 / 4</span>
+                </div>
+
+                <!-- RED PLAYER -->
+                <div class="player-card active-player" id="player-0">
+
+                    <div class="avatar red-avatar" aria-hidden="true">R</div>
+
+                    <div class="player-info">
+                        <h3>Player 1</h3>
+                        <p>RED PLAYER</p>
+                    </div>
+
+                    <span class="turn-indicator">YOUR TURN</span>
+
+                </div>
+
+                <!-- GREEN PLAYER -->
+                <div class="player-card" id="player-1">
+
+                    <div class="avatar green-avatar" aria-hidden="true">G</div>
+
+                    <div class="player-info">
+                        <h3>Player 2</h3>
+                        <p>GREEN PLAYER</p>
+                    </div>
+
+                </div>
+
+                <!-- YELLOW PLAYER -->
+                <div class="player-card" id="player-2">
+
+                    <div class="avatar yellow-avatar" aria-hidden="true">Y</div>
+
+                    <div class="player-info">
+                        <h3>Player 3</h3>
+                        <p>YELLOW PLAYER</p>
+                    </div>
+
+                </div>
+
+                <!-- BLUE PLAYER -->
+                <div class="player-card" id="player-3">
+
+                    <div class="avatar blue-avatar" aria-hidden="true">B</div>
+
+                    <div class="player-info">
+                        <h3>Player 4</h3>
+                        <p>BLUE PLAYER</p>
+                    </div>
+
+                </div>
+
+                <!-- RULES -->
+                <div class="rules-card">
+
+                    <span class="rules-icon" aria-hidden="true">✦</span>
+
+                    <h3>How to play</h3>
+
+                    <p>
+                        Roll a six to bring a token out of your home.
+                        Move your tokens around the board to reach
+                        the center.
+                    </p>
+
+                </div>
+
+            </aside>
+
+            <!-- LUDO BOARD -->
+            <section class="board-section" aria-label="Ludo game board">
+
+                <div class="board-topline">
+
+                    <span>CLASSIC MODE</span>
+
+                    <span class="board-decoration" aria-hidden="true">
+                        ✦ &nbsp; HIDAMES ARENA
+                    </span>
+
+                </div>
+
+                <div class="board-frame">
+
+                    <div class="ludo-board" id="ludoBoard">
+
+                        <!-- JAVASCRIPT CREATES TRACK CELLS HERE -->
+                        <div id="trackCells"></div>
+
+                        <!-- RED HOME -->
+                        <div class="home red-home">
+
+                            <div class="home-label">RED</div>
+
+                            <div class="home-inner">
+
+                                <div class="token red-token" id="token-0-0"></div>
+                                <div class="token red-token" id="token-0-1"></div>
+                                <div class="token red-token" id="token-0-2"></div>
+                                <div class="token red-token" id="token-0-3"></div>
+
+                            </div>
+
+                        </div>
+
+                        <!-- GREEN HOME -->
+                        <div class="home green-home">
+
+                            <div class="home-label">GREEN</div>
+
+                            <div class="home-inner">
+
+                                <div class="token green-token" id="token-1-0"></div>
+                                <div class="token green-token" id="token-1-1"></div>
+                                <div class="token green-token" id="token-1-2"></div>
+                                <div class="token green-token" id="token-1-3"></div>
+
+                            </div>
+
+                        </div>
+
+                        <!-- YELLOW HOME -->
+                        <div class="home yellow-home">
+
+                            <div class="home-label">YELLOW</div>
+
+                            <div class="home-inner">
+
+                                <div class="token yellow-token" id="token-2-0"></div>
+                                <div class="token yellow-token" id="token-2-1"></div>
+                                <div class="token yellow-token" id="token-2-2"></div>
+                                <div class="token yellow-token" id="token-2-3"></div>
+
+                            </div>
+
+                        </div>
+
+                        <!-- BLUE HOME -->
+                        <div class="home blue-home">
+
+                            <div class="home-label">BLUE</div>
+
+                            <div class="home-inner">
+
+                                <div class="token blue-token" id="token-3-0"></div>
+                                <div class="token blue-token" id="token-3-1"></div>
+                                <div class="token blue-token" id="token-3-2"></div>
+                                <div class="token blue-token" id="token-3-3"></div>
+
+                            </div>
+
+                        </div>
+
+                        <!-- CENTER FINISH -->
+                        <div class="board-center" aria-hidden="true">
+
+                            <div class="center-triangle center-red"></div>
+
+                            <div class="center-triangle center-green"></div>
+
+                            <div class="center-triangle center-yellow"></div>
+
+                            <div class="center-triangle center-blue"></div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <!-- BOARD CAPTION -->
+                <div class="board-caption">
+
+                    <span>● 4 WARRIORS</span>
+
+                    <span>● HIDAMES LUDO BOARD</span>
+
+                    <span>● 16 QUEENS</span>
+
+                </div>
+
+            </section>
+
+            <!-- DICE PANEL -->
+            <aside class="dice-panel">
+
+                <p class="dice-label">CURRENT TURN</p>
+
+                <h2 id="turnName">Player 1</h2>
+
+                <p class="turn-subtitle" id="turnSubtitle">
+                    Red player's move
+                </p>
+
+                <!-- DICE -->
+                <div class="dice-stage">
+
+                    <div class="dice-shadow" aria-hidden="true"></div>
+
+                    <button
+                        type="button"
+                        class="dice"
+                        id="dice"
+                        aria-label="Roll dice"
+                        aria-controls="diceMessage"
+                    >
+
+                        <span class="pip pip-1" aria-hidden="true"></span>
+                        <span class="pip pip-2" aria-hidden="true"></span>
+                        <span class="pip pip-3" aria-hidden="true"></span>
+                        <span class="pip pip-4" aria-hidden="true"></span>
+                        <span class="pip pip-5" aria-hidden="true"></span>
+                        <span class="pip pip-6" aria-hidden="true"></span>
+                        <span class="pip pip-7" aria-hidden="true"></span>
+
+                    </button>
+
+                </div>
+
+                <!-- ROLL BUTTON -->
+                <button type="button" class="roll-btn" id="rollBtn">
+
+                    <span>ROLL DICE</span>
+
+                    <span class="roll-arrow" aria-hidden="true">↗</span>
+
+                </button>
+
+                <!-- GAME MESSAGE -->
+                <p class="dice-message" id="diceMessage" aria-live="polite">
+                    Tap the dice or button to roll.
+                </p>
+
+                <!-- LAST ROLL -->
+                <div class="last-roll">
+
+                    <span>LAST ROLL</span>
+
+                    <strong id="lastRoll">—</strong>
+
+                </div>
+
+            </aside>
+
+        </section>
+
+        <!-- FOOTER -->
+        <footer class="game-footer">
+
+            <span class="footer-brand">
+                HID<span>AMES</span>
+            </span>
+
+            <p>Made for players. Built for fun.</p>
+
+        </footer>
+
+    </main>
+
+    <!-- GAME JAVASCRIPT -->
+    <script src="ludo.js"></script>
+
+</body>
+</html>

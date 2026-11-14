@@ -1,0 +1,307 @@
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta name="description" content="Explore the HIDAMES game collection. Play Ludo, discover puzzles and enjoy exciting games.">
+
+    <meta name="theme-color" content="#080808">
+
+    <title>Explore Games - HIDAMES</title>
+
+    <!-- Games Library CSS -->
+    <link rel="stylesheet" href="exploregames.css">
+
+</head>
+
+<body>
+
+    <!-- NAVIGATION BAR -->
+
+    <header class="navbar">
+
+        <div class="logo" aria-label="HIDAMES">
+            HID<span>AMES</span>
+        </div>
+
+        <nav aria-label="Main navigation">
+            <a href="index.html">Home</a>
+            <a href="exploregames.html" class="active" aria-current="page">Games</a>
+            <a href="index.html#about">About</a>
+        </nav>
+
+        <a href="index.html" class="play-btn">
+            Home
+        </a>
+
+    </header>
+
+
+    <main>
+
+        <!-- PAGE INTRODUCTION -->
+
+        <section class="games-hero">
+
+            <p class="tagline">THE HIDAMES COLLECTION</p>
+
+            <h1>
+                Explore <span>Games.</span>
+            </h1>
+
+            <p>
+                Discover your next favourite game.
+                Play, challenge yourself and enjoy!
+            </p>
+
+        </section>
+
+
+        <!-- GAME SEARCH AND LIBRARY -->
+
+        <section class="game-library" aria-label="Game library">
+
+            <!-- GAME SEARCH -->
+
+            <div class="search-box">
+
+                <input
+                    type="search"
+                    id="gameSearch"
+                    placeholder="Search your favourite game..."
+                    aria-label="Search games"
+                    autocomplete="off"
+                >
+
+            </div>
+
+
+            <!-- CATEGORY FILTERS -->
+
+            <div class="category-filters" aria-label="Game categories">
+
+                <button
+                    type="button"
+                    class="filter-btn active"
+                    data-category="all"
+                    aria-pressed="true"
+                >
+                    All Games
+                </button>
+
+                <button
+                    type="button"
+                    class="filter-btn"
+                    data-category="board"
+                    aria-pressed="false"
+                >
+                    Board Games
+                </button>
+
+                <button
+                    type="button"
+                    class="filter-btn"
+                    data-category="puzzle"
+                    aria-pressed="false"
+                >
+                    Puzzle Games
+                </button>
+
+            </div>
+
+
+            <!-- TOP PLAYING GAMES -->
+
+            <section class="games-section">
+
+                <div class="section-heading">
+
+                    <div>
+                        <p class="tagline">POPULAR CHOICES</p>
+                        <h2>Top Playing Games</h2>
+                    </div>
+
+                </div>
+
+
+                <div class="games-container" id="gamesContainer">
+
+
+                    <!-- LUDO -->
+
+                    <article class="game-card" data-category="board">
+
+                        <div class="game-art ludo-art">
+                            <span aria-hidden="true">🎲</span>
+                        </div>
+
+                        <div class="game-info">
+
+                            <h3>Ludo</h3>
+
+                            <p>
+                                Roll the dice and race your tokens
+                                to victory.
+                            </p>
+
+                            <a href="ludo.html" class="game-btn">
+                                Play Now
+                            </a>
+
+                        </div>
+
+                    </article>
+
+
+                    <!-- SNAKES AND LADDERS -->
+
+                    <article class="game-card" data-category="board">
+
+                        <div class="game-art snakes-art">
+                            <span aria-hidden="true">🐍</span>
+                        </div>
+
+                        <div class="game-info">
+
+                            <h3>Snakes &amp; Ladders</h3>
+
+                            <p>
+                                Climb ladders, avoid snakes
+                                and reach the finish.
+                            </p>
+
+                            <button type="button" class="game-btn" disabled>
+                                Coming Soon
+                            </button>
+
+                        </div>
+
+                    </article>
+
+
+                    <!-- PUZZLE -->
+
+                    <article class="game-card" data-category="puzzle">
+
+                        <div class="game-art puzzle-art">
+                            <span aria-hidden="true">🧩</span>
+                        </div>
+
+                        <div class="game-info">
+
+                            <h3>Puzzle Games</h3>
+
+                            <p>
+                                Test your brain with fun
+                                and challenging puzzles.
+                            </p>
+
+                            <button type="button" class="game-btn" disabled>
+                                Coming Soon
+                            </button>
+
+                        </div>
+
+                    </article>
+
+
+                </div>
+
+
+                <!-- NO RESULTS MESSAGE -->
+
+                <p
+                    id="noGamesMessage"
+                    class="no-games-message"
+                    role="status"
+                    aria-live="polite"
+                    hidden
+                >
+                    No games found. Try another search!
+                </p>
+
+            </section>
+
+
+            <!-- MORE GAMES -->
+
+            <section class="coming-section">
+
+                <p class="tagline">MORE ENTERTAINMENT</p>
+
+                <h2>More Games Coming Soon</h2>
+
+                <p>
+                    We're working on bringing more exciting
+                    games to HIDAMES. Stay tuned!
+                </p>
+
+            </section>
+
+        </section>
+
+    </main>
+
+
+    <!-- FOOTER -->
+
+    <footer class="footer">
+
+        <h2>HID<span>AMES</span></h2>
+
+        <p class="footer-tagline">
+            Play Anytime. Enjoy Every Moment.
+        </p>
+
+        <div class="developer-credit">
+
+            <span>Designed &amp; Developed by</span>
+
+            <a
+                href="https://www.instagram.com/adnannhasankhan/"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="developer-link"
+                aria-label="Visit developer's Instagram profile"
+            >
+
+                <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="17"
+                    height="17"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                >
+                    <rect x="2" y="2" width="20" height="20" rx="5"/>
+                    <circle cx="12" cy="12" r="4"/>
+                    <circle cx="18" cy="6" r="1"
+                        fill="currentColor" stroke="none"/>
+                </svg>
+
+                <span>adnannhasankhan</span>
+
+            </a>
+
+        </div>
+
+        <p class="copyright">
+            © 2026 HIDAMES. All rights reserved.
+        </p>
+
+    </footer>
+
+
+    <!-- JAVASCRIPT CONNECTION -->
+
+    <script src="exploregames.js"></script>
+
+</body>
+</html>
