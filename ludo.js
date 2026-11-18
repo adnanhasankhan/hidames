@@ -1,17 +1,17 @@
 
-/* ==========================================
-   HIDAMES LUDO - COMPLETE GAME ENGINE
-   Computer + Same Phone + Team Matches
-   Online multiplayer requires backend setup.
-========================================== */
+/* =========================================================
+   HIDAMES LUDO — RULEBOOK GAME ENGINE
+   Computer | Same Device | Team Matches
+   Online multiplayer requires a real backend.
+========================================================= */
 
-document.addEventListener("DOMContentLoaded", function () {
+document.addEventListener("DOMContentLoaded", () => {
 
     const $ = id => document.getElementById(id);
 
-    /* ==========================================
-       HTML ELEMENTS
-    ========================================== */
+    /* =====================================================
+       1. HTML ELEMENTS
+    ===================================================== */
 
     const setupScreen = $("setupScreen");
     const matchSection = $("matchSection");
@@ -34,7 +34,11 @@ document.addEventListener("DOMContentLoaded", function () {
     const diceMessage = $("diceMessage");
     const lastRoll = $("lastRoll");
 
-    const requiredElements = [
+    const openingRollStatus = $("openingRollStatus");
+    const gameStatus = $("gameStatus");
+    const colorMessage = $("colorMessage");
+
+    const required = [
         setupScreen,
         matchSection,
         nameSection,
@@ -51,66 +55,89 @@ document.addEventListener("DOMContentLoaded", function () {
         startGameBtn
     ];
 
-    if (requiredElements.some(element => !element)) {
+    if (required.some(element => !element)) {
         console.error(
-            "Some required Ludo HTML elements are missing. Check your ludo.html IDs."
+            "HIDAMES Ludo: Required HTML elements are missing. Check ludo.html."
         );
         return;
     }
 
-    /* ==========================================
-       PLAYER CONFIGURATION
-    ========================================== */
+    /* =====================================================
+       2. COLOUR CONFIGURATION
+    ===================================================== */
 
-    const players = [
-        {
-            color: "Red",
+    const colorConfig = {
+        red: {
+            name: "Red",
             emoji: "🔴",
-            laneClass: "lane-red",
-            startClass: "start-red",
+            hex: "#e53935",
             startIndex: 0,
+            startClass: "start-red",
+            laneClass: "lane-red",
+            homeClass: "home-red",
             lane: [
                 [8, 2], [8, 3], [8, 4],
                 [8, 5], [8, 6], [8, 7]
             ]
         },
-        {
-            color: "Green",
+
+        green: {
+            name: "Green",
             emoji: "🟢",
-            laneClass: "lane-green",
-            startClass: "start-green",
+            hex: "#43a047",
             startIndex: 13,
+            startClass: "start-green",
+            laneClass: "lane-green",
+            homeClass: "home-green",
             lane: [
                 [2, 8], [3, 8], [4, 8],
                 [5, 8], [6, 8], [7, 8]
             ]
         },
-        {
-            color: "Yellow",
+
+        yellow: {
+            name: "Yellow",
             emoji: "🟡",
-            laneClass: "lane-yellow",
-            startClass: "start-yellow",
+            hex: "#fbc02d",
             startIndex: 39,
+            startClass: "start-yellow",
+            laneClass: "lane-yellow",
+            homeClass: "home-yellow",
             lane: [
                 [14, 8], [13, 8], [12, 8],
                 [11, 8], [10, 8], [9, 8]
             ]
         },
-        {
-            color: "Blue",
+
+        blue: {
+            name: "Blue",
             emoji: "🔵",
-            laneClass: "lane-blue",
-            startClass: "start-blue",
+            hex: "#1e88e5",
             startIndex: 26,
+            startClass: "start-blue",
+            laneClass: "lane-blue",
+            homeClass: "home-blue",
             lane: [
                 [8, 14], [8, 13], [8, 12],
                 [8, 11], [8, 10], [8, 9]
             ]
         }
-    ];
+    };
 
-    // Turn order: Red -> Green -> Blue -> Yellow
+    const playerSlots = [0, 1, 2, 3];
+
+    const players = playerSlots.map(index => ({
+        index,
+        colorKey: ["red", "green", "yellow", "blue"][index],
+        name: `Player ${index + 1}`
+    }));
+
+    /* Standard clockwise order. */
     const turnOrder = [0, 1, 3, 2];
+
+    /* =====================================================
+       3. MAIN TRACK
+    ===================================================== */
 
     const mainPath = [
         [7, 2], [7, 3], [7, 4], [7, 5], [7, 6],
@@ -130,22 +157,32 @@ document.addEventListener("DOMContentLoaded", function () {
         [9, 1], [8, 1], [7, 1]
     ];
 
-    const safePositions = [0, 8, 13, 21, 26, 34, 39, 47];
+    const safePositions = [
+        0, 8, 13, 21, 26, 34, 39, 47
+    ];
 
     if (mainPath.length !== 52) {
-        console.error("The board path must contain 52 cells.");
+        console.error("Invalid Ludo path: expected 52 cells.");
         return;
     }
 
-    /* ==========================================
-       TOKEN CONFIGURATION
-    ========================================== */
+    /* =====================================================
+       4. TOKEN CONFIGURATION
+    ===================================================== */
 
-    const tokens = players.map((player, playerIndex) => {
+    const tokens = players.map(player => {
 
         return Array.from({ length: 4 }, (_, tokenIndex) => {
 
-            const element = $(`token-${playerIndex}-${tokenIndex}`);
+            const element = $(
+                `token-${player.index}-${tokenIndex}`
+            );
+
+            if (!element) {
+                console.error(
+                    `Missing token-${player.index}-${tokenIndex}`
+                );
+            }
 
             if (element) {
                 element.setAttribute("role", "button");
@@ -153,28 +190,24 @@ document.addEventListener("DOMContentLoaded", function () {
             }
 
             return {
-                playerIndex,
+                playerIndex: player.index,
                 tokenIndex,
                 progress: -1,
                 finished: false,
                 element,
-                homeElement: element
-                    ? element.closest(".home-inner")
-                    : null
+                homeElement: null
             };
         });
     });
 
-    if (tokens.flat().some(token => !token.element || !token.homeElement)) {
-        console.error(
-            "Ludo token elements are missing. Check token IDs and .home-inner elements."
-        );
+    if (tokens.flat().some(token => !token.element)) {
+        console.error("Some Ludo tokens are missing in ludo.html.");
         return;
     }
 
-    /* ==========================================
-       GAME STATE
-    ========================================== */
+    /* =====================================================
+       5. GAME STATE
+    ===================================================== */
 
     let selectedMode = "";
     let selectedMatch = "";
@@ -187,24 +220,38 @@ document.addEventListener("DOMContentLoaded", function () {
     let isMoving = false;
     let waitingForToken = false;
     let gameOver = false;
+    let openingRound = false;
+
+    let consecutiveSixes = 0;
+
+    /*
+       Snapshot before the first roll of a turn.
+       If the third consecutive six occurs, all positions
+       are restored to this snapshot.
+    */
+    let turnSnapshot = null;
 
     let pendingTimers = [];
 
-    const pathCells = [];
     const cellMap = new Map();
+    const pathCells = [];
 
-    /* ==========================================
-       TIMER MANAGEMENT
-    ========================================== */
+    /* =====================================================
+       6. TIMER MANAGEMENT
+    ===================================================== */
 
     function schedule(callback, delay) {
 
         const timer = setTimeout(() => {
-            pendingTimers = pendingTimers.filter(item => item !== timer);
+
+            pendingTimers = pendingTimers.filter(
+                item => item !== timer
+            );
 
             if (!gameOver) {
                 callback();
             }
+
         }, delay);
 
         pendingTimers.push(timer);
@@ -213,13 +260,15 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function clearPendingTimers() {
-        pendingTimers.forEach(timer => clearTimeout(timer));
+
+        pendingTimers.forEach(clearTimeout);
+
         pendingTimers = [];
     }
 
-    /* ==========================================
-       SETUP SCREEN
-    ========================================== */
+    /* =====================================================
+       7. SCREEN MANAGEMENT
+    ===================================================== */
 
     function showScreen(screen) {
 
@@ -227,6 +276,17 @@ document.addEventListener("DOMContentLoaded", function () {
         gameLayout.hidden = screen !== "game";
         winnerScreen.hidden = screen !== "winner";
     }
+
+    function setStatus(message) {
+
+        if (gameStatus) {
+            gameStatus.textContent = message;
+        }
+    }
+
+    /* =====================================================
+       8. MATCH CONFIGURATION
+    ===================================================== */
 
     function getMatchConfiguration(match) {
 
@@ -279,19 +339,118 @@ document.addEventListener("DOMContentLoaded", function () {
         return configurations[match] || null;
     }
 
-    /* ==========================================
-       GAME MODE SELECTION
-    ========================================== */
+    /* =====================================================
+       9. COLOUR SELECTION
+    ===================================================== */
+
+    function readSelectedColors() {
+
+        return players.map(player => {
+
+            const select = $(`playerColor${player.index}`);
+
+            return select && select.value
+                ? select.value.toLowerCase()
+                : player.colorKey;
+        });
+    }
+
+    function validateColors() {
+
+        const selected = readSelectedColors();
+
+        const active = selected.slice(
+            0,
+            4
+        );
+
+        const valid = active.every(
+            color => Boolean(colorConfig[color])
+        );
+
+        const unique = new Set(active).size === active.length;
+
+        if (!valid) {
+
+            if (colorMessage) {
+                colorMessage.textContent =
+                    "Choose a valid colour for every player.";
+            }
+
+            return false;
+        }
+
+        if (!unique) {
+
+            if (colorMessage) {
+                colorMessage.textContent =
+                    "Each player must have a different colour.";
+            }
+
+            return false;
+        }
+
+        players.forEach((player, index) => {
+            player.colorKey = selected[index];
+        });
+
+        if (colorMessage) {
+            colorMessage.textContent =
+                "All player colours are valid.";
+        }
+
+        return true;
+    }
+
+    document.querySelectorAll(".player-color-select").forEach(select => {
+
+        select.addEventListener("change", () => {
+
+            const selected = readSelectedColors();
+
+            const duplicate =
+                new Set(selected).size !== selected.length;
+
+            if (colorMessage) {
+
+                colorMessage.textContent = duplicate
+                    ? "Duplicate colours are not allowed."
+                    : "Player colours updated.";
+            }
+
+            startGameBtn.disabled =
+                !selectedMode ||
+                !selectedMatch ||
+                duplicate;
+        });
+    });
+
+    function getPlayerConfig(index) {
+
+        return colorConfig[players[index].colorKey];
+    }
+
+    function getPlayerName(index) {
+
+        const input = $(`playerName${index}`);
+
+        return input && input.value.trim()
+            ? input.value.trim()
+            : `Player ${index + 1}`;
+    }
+
+    /* =====================================================
+       10. GAME MODE SELECTION
+    ===================================================== */
 
     document.querySelectorAll(".mode-card").forEach(button => {
 
-        button.addEventListener("click", function () {
+        button.addEventListener("click", () => {
 
             selectedMode = button.dataset.mode;
 
             document.querySelectorAll(".mode-card").forEach(item => {
                 item.classList.toggle("active", item === button);
-                item.classList.remove("selected");
             });
 
             document.querySelectorAll(".match-option").forEach(item => {
@@ -305,34 +464,26 @@ document.addEventListener("DOMContentLoaded", function () {
             nameSection.hidden = true;
             teamSection.hidden = true;
 
-            onlineSetup.hidden = selectedMode !== "online";
-
-            if (selectedMode === "online") {
-
-                setupMessage.textContent =
-                    "Online multiplayer is coming soon. A real-time server connection is required.";
-
-            } else {
-
-                setupMessage.textContent =
-                    "Now choose your match type.";
+            if (onlineSetup) {
+                onlineSetup.hidden = selectedMode !== "online";
             }
+
+            setupMessage.textContent =
+                selectedMode === "online"
+                    ? "Online multiplayer requires a real backend connection. It is not available yet."
+                    : "Choose your match type.";
         });
     });
 
-    /* ==========================================
-       MATCH TYPE SELECTION
-    ========================================== */
+    /* =====================================================
+       11. MATCH TYPE SELECTION
+    ===================================================== */
 
     document.querySelectorAll(".match-option").forEach(button => {
 
-        button.addEventListener("click", function () {
+        button.addEventListener("click", () => {
 
             if (!selectedMode || selectedMode === "online") {
-
-                setupMessage.textContent =
-                    "Online multiplayer is not available yet.";
-
                 return;
             }
 
@@ -340,24 +491,24 @@ document.addEventListener("DOMContentLoaded", function () {
 
             document.querySelectorAll(".match-option").forEach(item => {
                 item.classList.toggle("active", item === button);
-                item.classList.remove("selected");
             });
 
             const config = getMatchConfiguration(selectedMatch);
 
             if (!config) {
-                setupMessage.textContent = "Invalid match selection.";
-                startGameBtn.disabled = true;
-                return;
-            }
 
-            if (selectedMode === "local" && config.players.length < 2) {
-                setupMessage.textContent = "Choose at least two players.";
+                setupMessage.textContent = "Invalid match selection.";
+
+                startGameBtn.disabled = true;
+
                 return;
             }
 
             nameSection.hidden = false;
-            teamSection.hidden = !config.teams;
+
+            if (teamSection) {
+                teamSection.hidden = !config.teams;
+            }
 
             document.querySelectorAll(".name-field").forEach(field => {
 
@@ -372,76 +523,36 @@ document.addEventListener("DOMContentLoaded", function () {
 
             setupMessage.textContent =
                 selectedMode === "computer"
-                    ? "Enter your name. The remaining players will be computers."
-                    : "Enter player names and start your game.";
+                    ? "Enter your name. Other players will be computers."
+                    : "Enter player names and prepare your match.";
         });
     });
 
-    /* ==========================================
-       ONLINE ROOM BUTTONS
-    ========================================== */
+    /* =====================================================
+       12. ONLINE MODE
+    ===================================================== */
 
     const onlineMessage =
-        "Online multiplayer is not connected yet. Real rooms, invitation links and room codes will require a backend.";
+        "Online multiplayer is not connected. A real backend such as Supabase Realtime is required.";
 
-    if ($("createRoomBtn")) {
-        $("createRoomBtn").addEventListener("click", () => {
-            setupMessage.textContent = onlineMessage;
-        });
-    }
+    ["createRoomBtn", "joinRoomBtn"].forEach(id => {
 
-    if ($("joinRoomBtn")) {
-        $("joinRoomBtn").addEventListener("click", () => {
-            setupMessage.textContent = onlineMessage;
-        });
-    }
+        const button = $(id);
 
-    /* ==========================================
-       PLAYER NAMES
-    ========================================== */
-
-    function getPlayerName(index) {
-
-        const input = $(`playerName${index}`);
-
-        return input && input.value.trim()
-            ? input.value.trim()
-            : `Player ${index + 1}`;
-    }
-
-    if ($("skipNamesBtn")) {
-
-        $("skipNamesBtn").addEventListener("click", () => {
-
-            players.forEach((player, index) => {
-
-                const input = $(`playerName${index}`);
-
-                if (input) {
-                    input.value = "";
-                }
+        if (button) {
+            button.addEventListener("click", () => {
+                setupMessage.textContent = onlineMessage;
             });
+        }
+    });
 
-            setupMessage.textContent =
-                "Default player names selected.";
-
-            if (selectedMatch) {
-                const config = getMatchConfiguration(selectedMatch);
-
-                if (config && config.teams) {
-                    renderTeamAssignment(config);
-                }
-            }
-        });
-    }
-
-    /* ==========================================
-       TEAM ASSIGNMENT DISPLAY
-    ========================================== */
+    /* =====================================================
+       13. PLAYER NAMES AND TEAMS
+    ===================================================== */
 
     function renderTeamAssignment(config) {
 
-        if (!config.teams) return;
+        if (!config || !config.teams) return;
 
         const teamA = $("teamAPlayers");
         const teamB = $("teamBPlayers");
@@ -451,33 +562,129 @@ document.addEventListener("DOMContentLoaded", function () {
         teamA.innerHTML = "";
         teamB.innerHTML = "";
 
-        function addTeamPlayers(container, indexes) {
+        function addPlayers(container, indexes) {
 
             indexes.forEach(index => {
 
-                const player = players[index];
                 const label = document.createElement("p");
 
                 label.textContent =
-                    `${player.emoji} ${getPlayerName(index)}`;
+                    `${getPlayerConfig(index).emoji} ${getPlayerName(index)}`;
 
                 container.appendChild(label);
             });
         }
 
-        addTeamPlayers(teamA, config.teamA);
-        addTeamPlayers(teamB, config.teamB);
+        addPlayers(teamA, config.teamA);
+        addPlayers(teamB, config.teamB);
     }
 
-    /* ==========================================
-       CREATE BOARD
-    ========================================== */
+    if ($("skipNamesBtn")) {
+
+        $("skipNamesBtn").addEventListener("click", () => {
+
+            players.forEach(player => {
+
+                const input = $(`playerName${player.index}`);
+
+                if (input) {
+                    input.value = "";
+                }
+            });
+
+            setupMessage.textContent =
+                "Default player names selected.";
+
+            const config = getMatchConfiguration(selectedMatch);
+
+            if (config) {
+                renderTeamAssignment(config);
+            }
+        });
+    }
+
+    /* =====================================================
+       14. TEAM HELPERS
+    ===================================================== */
+
+    function getPlayerTeam(index) {
+
+        const config = getMatchConfiguration(selectedMatch);
+
+        if (!config || !config.teams) {
+            return null;
+        }
+
+        if (config.teamA.includes(index)) return "A";
+        if (config.teamB.includes(index)) return "B";
+
+        return null;
+    }
+
+    function areTeammates(firstIndex, secondIndex) {
+
+        const firstTeam = getPlayerTeam(firstIndex);
+        const secondTeam = getPlayerTeam(secondIndex);
+
+        return Boolean(
+            firstTeam &&
+            secondTeam &&
+            firstTeam === secondTeam
+        );
+    }
+
+    function isOpponent(firstIndex, secondIndex) {
+
+        if (firstIndex === secondIndex) {
+            return false;
+        }
+
+        if (areTeammates(firstIndex, secondIndex)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /* =====================================================
+       15. TOKEN HOME POSITIONS
+    ===================================================== */
+
+    function assignTokenHomes() {
+
+        tokens.flat().forEach(token => {
+
+            const player = players[token.playerIndex];
+
+            const config = getPlayerConfig(player.index);
+
+            const home = board.querySelector(
+                `.${config.homeClass} .home-inner`
+            );
+
+            token.homeElement = home;
+
+            if (!home) {
+                console.error(
+                    `Missing home area for ${config.name}. Check ludo.html.`
+                );
+                return;
+            }
+
+            token.element.style.backgroundColor = config.hex;
+            token.element.style.borderColor = "#ffffff";
+        });
+    }
+
+    /* =====================================================
+       16. BOARD GENERATION
+    ===================================================== */
 
     function createCell(row, col, className, index = null) {
 
         const cell = document.createElement("div");
 
-        cell.classList.add("track-cell", className);
+        cell.className = `track-cell ${className}`;
 
         cell.style.gridRow = String(row);
         cell.style.gridColumn = String(col);
@@ -493,106 +700,16 @@ document.addEventListener("DOMContentLoaded", function () {
         return cell;
     }
 
-    function updateTokenLabel(token) {
-
-        const player = players[token.playerIndex];
-
-        let status = "inside home";
-
-        if (token.finished) {
-
-            status = "finished";
-
-        } else if (token.progress >= 0) {
-
-            status = token.progress <= 51
-                ? "on the main track"
-                : "in the home lane";
-        }
-
-        token.element.setAttribute(
-            "aria-label",
-            `${player.color} token ${token.tokenIndex + 1}, ${status}`
-        );
-    }
-
-    function createBoard() {
-
-        track.innerHTML = "";
-
-        pathCells.length = 0;
-        cellMap.clear();
-
-        // Create the 52 main track cells.
-        mainPath.forEach(([row, col], index) => {
-
-            const cell = createCell(row, col, "main-track", index);
-
-            if (safePositions.includes(index)) {
-                cell.classList.add("safe-cell");
-            }
-
-            pathCells.push(cell);
-        });
-
-        // Create all four players' home lanes.
-        players.forEach(player => {
-
-            player.lane.forEach(([row, col], index) => {
-
-                const cell = createCell(
-                    row,
-                    col,
-                    player.laneClass
-                );
-
-                cell.classList.add("home-lane");
-
-                cell.dataset.laneIndex = String(index);
-            });
-        });
-
-        // Mark each player's starting cell.
-        players.forEach(player => {
-
-            const startCell = pathCells[player.startIndex];
-
-            if (startCell) {
-                startCell.classList.add(player.startClass);
-            }
-        });
-
-        // Return all tokens to their home positions.
-        tokens.flat().forEach(token => {
-
-            token.progress = -1;
-            token.finished = false;
-
-            token.homeElement.appendChild(token.element);
-
-            token.element.classList.remove(
-                "movable",
-                "selected-token"
-            );
-
-            updateTokenLabel(token);
-        });
-    }
-
-    /* ==========================================
-       TOKEN POSITION HELPERS
-    ========================================== */
-
     function getMainTrackIndex(token) {
 
         if (token.progress < 0 || token.progress > 51) {
             return null;
         }
 
-        const player = players[token.playerIndex];
+        const config = getPlayerConfig(token.playerIndex);
 
         return (
-            player.startIndex + token.progress
+            config.startIndex + token.progress
         ) % 52;
     }
 
@@ -609,11 +726,11 @@ document.addEventListener("DOMContentLoaded", function () {
 
         if (token.progress <= 57) {
 
-            const player = players[token.playerIndex];
+            const config = getPlayerConfig(token.playerIndex);
 
             const laneIndex = token.progress - 52;
 
-            const [row, col] = player.lane[laneIndex];
+            const [row, col] = config.lane[laneIndex];
 
             return cellMap.get(`${row}-${col}`) || null;
         }
@@ -621,13 +738,110 @@ document.addEventListener("DOMContentLoaded", function () {
         return null;
     }
 
-    /* ==========================================
-       PLAYER HELPERS
-    ========================================== */
+    function updateTokenLabel(token) {
+
+        const player = players[token.playerIndex];
+
+        let status = "in base";
+
+        if (token.finished) {
+            status = "finished";
+        } else if (token.progress <= 51 && token.progress >= 0) {
+            status = "on the main track";
+        } else if (token.progress >= 52) {
+            status = "in the home lane";
+        }
+
+        token.element.setAttribute(
+            "aria-label",
+            `${player.name}, ${getPlayerConfig(player.index).name} token ${token.tokenIndex + 1}, ${status}`
+        );
+    }
+
+    function createBoard() {
+
+        track.innerHTML = "";
+
+        pathCells.length = 0;
+        cellMap.clear();
+
+        assignTokenHomes();
+
+        mainPath.forEach(([row, col], index) => {
+
+            const cell = createCell(row, col, "main-track", index);
+
+            if (safePositions.includes(index)) {
+                cell.classList.add("safe-cell");
+            }
+
+            pathCells.push(cell);
+        });
+
+        players.forEach(player => {
+
+            const config = getPlayerConfig(player.index);
+
+            config.lane.forEach(([row, col], index) => {
+
+                const cell = createCell(
+                    row,
+                    col,
+                    `home-lane ${config.laneClass}`
+                );
+
+                cell.dataset.laneIndex = String(index);
+            });
+        });
+
+        /* Clear old starting-square markings. */
+        pathCells.forEach(cell => {
+
+            Object.values(colorConfig).forEach(config => {
+                cell.classList.remove(config.startClass);
+            });
+        });
+
+        players.forEach(player => {
+
+            const config = getPlayerConfig(player.index);
+
+            const startCell = pathCells[config.startIndex];
+
+            if (startCell) {
+                startCell.classList.add(config.startClass);
+                startCell.style.backgroundColor = config.hex;
+            }
+        });
+
+        tokens.flat().forEach(token => {
+
+            token.progress = -1;
+            token.finished = false;
+
+            token.element.classList.remove(
+                "movable",
+                "selected-token"
+            );
+
+            token.element.style.backgroundColor =
+                getPlayerConfig(token.playerIndex).hex;
+
+            token.homeElement.appendChild(token.element);
+
+            updateTokenLabel(token);
+        });
+    }
+
+    /* =====================================================
+       17. PLAYER STATE
+    ===================================================== */
 
     function isActivePlayer(index) {
 
-        return activePlayers.some(player => player.index === index);
+        return activePlayers.some(
+            player => player.index === index
+        );
     }
 
     function getCurrentPlayer() {
@@ -635,25 +849,6 @@ document.addEventListener("DOMContentLoaded", function () {
         return activePlayers.find(
             player => player.index === currentPlayer
         );
-    }
-
-    function getPlayerTeam(index) {
-
-        const config = getMatchConfiguration(selectedMatch);
-
-        if (!config || !config.teams) {
-            return null;
-        }
-
-        if (config.teamA.includes(index)) {
-            return "A";
-        }
-
-        if (config.teamB.includes(index)) {
-            return "B";
-        }
-
-        return null;
     }
 
     function isBot(index) {
@@ -665,51 +860,33 @@ document.addEventListener("DOMContentLoaded", function () {
         return player ? player.isBot : false;
     }
 
-    /* ==========================================
-       PLAYER DISPLAY
-    ========================================== */
-
     function updatePlayerDisplay() {
 
-        players.forEach((player, index) => {
+        players.forEach(player => {
+
+            const index = player.index;
 
             const card = $(`player-${index}`);
-
             const nameDisplay = $(`playerNameDisplay${index}`);
-
             const rollBtn = $(`playerRollBtn${index}`);
-
-            const active = isActivePlayer(index);
 
             const activePlayer = activePlayers.find(
                 item => item.index === index
             );
+
+            const active = Boolean(activePlayer);
 
             if (card) {
 
                 card.hidden = !active;
 
                 card.classList.toggle(
-                    "active-player",
+                    "active",
                     active && index === currentPlayer
                 );
 
-                const oldIndicator =
-                    card.querySelector(".turn-indicator");
-
-                if (oldIndicator) {
-                    oldIndicator.remove();
-                }
-
-                if (active && index === currentPlayer) {
-
-                    const indicator = document.createElement("span");
-
-                    indicator.className = "turn-indicator";
-                    indicator.textContent = "YOUR TURN";
-
-                    card.appendChild(indicator);
-                }
+                card.style.borderLeft =
+                    `4px solid ${getPlayerConfig(index).hex}`;
             }
 
             if (nameDisplay && activePlayer) {
@@ -723,12 +900,12 @@ document.addEventListener("DOMContentLoaded", function () {
                 rollBtn.disabled =
                     !active ||
                     index !== currentPlayer ||
-                    !activePlayer ||
-                    activePlayer.isBot ||
+                    isBot(index) ||
                     isRolling ||
                     isMoving ||
                     waitingForToken ||
-                    gameOver;
+                    gameOver ||
+                    openingRound;
             }
         });
     }
@@ -737,19 +914,118 @@ document.addEventListener("DOMContentLoaded", function () {
 
         const player = getCurrentPlayer();
 
-        if (!player || gameOver) return;
+        if (!player) return;
+
+        const config = getPlayerConfig(currentPlayer);
 
         turnName.textContent = player.name;
 
         turnSubtitle.textContent =
-            `${players[currentPlayer].color} player's move`;
+            `${config.emoji} ${config.name} player's turn`;
 
         updatePlayerDisplay();
     }
 
-    /* ==========================================
-       TOKEN MOVEMENT OPTIONS
-    ========================================== */
+    /* =====================================================
+       18. BLOCKADE RULES
+    ===================================================== */
+
+    /*
+       A blockade exists when two tokens belonging to the
+       same player occupy the same main-track square.
+
+       An opponent cannot pass through or land on it.
+       Teammates are not treated as opponents.
+    */
+
+    function getBlockadeOwner(trackIndex) {
+
+        const counts = new Map();
+
+        tokens.flat().forEach(token => {
+
+            if (token.finished || token.progress < 0 ||
+                token.progress > 51) {
+                return;
+            }
+
+            if (getMainTrackIndex(token) !== trackIndex) {
+                return;
+            }
+
+            counts.set(
+                token.playerIndex,
+                (counts.get(token.playerIndex) || 0) + 1
+            );
+        });
+
+        for (const [playerIndex, count] of counts) {
+
+            if (count >= 2) {
+                return playerIndex;
+            }
+        }
+
+        return null;
+    }
+
+    function isBlockedForPlayer(trackIndex, movingPlayer) {
+
+        const owner = getBlockadeOwner(trackIndex);
+
+        if (owner === null) return false;
+
+        return isOpponent(movingPlayer, owner);
+    }
+
+    function canMoveThroughBlockades(token, diceValue) {
+
+        const playerIndex = token.playerIndex;
+
+        let startingProgress = token.progress;
+
+        /*
+           A token leaving base enters its own starting square.
+           Check that square for an opponent blockade.
+        */
+
+        if (startingProgress === -1) {
+
+            const startIndex =
+                getPlayerConfig(playerIndex).startIndex;
+
+            return !isBlockedForPlayer(startIndex, playerIndex);
+        }
+
+        /*
+           Check every outer-track square crossed by the move.
+           This prevents jumping over an enemy blockade.
+        */
+
+        for (let step = 1; step <= diceValue; step++) {
+
+            const nextProgress = startingProgress + step;
+
+            if (nextProgress > 51) {
+                break;
+            }
+
+            const trackIndex = (
+                getPlayerConfig(playerIndex).startIndex +
+                nextProgress
+            ) % 52;
+
+            if (isBlockedForPlayer(trackIndex, playerIndex)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /* =====================================================
+       19. LEGAL MOVES
+    ===================================================== */
 
     function getMovableTokens(playerIndex, diceValue) {
 
@@ -760,10 +1036,16 @@ document.addEventListener("DOMContentLoaded", function () {
             }
 
             if (token.progress === -1) {
-                return diceValue === 6;
+
+                return diceValue === 6 &&
+                    canMoveThroughBlockades(token, diceValue);
             }
 
-            return token.progress + diceValue <= 57;
+            if (token.progress + diceValue > 57) {
+                return false;
+            }
+
+            return canMoveThroughBlockades(token, diceValue);
         });
     }
 
@@ -778,55 +1060,73 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    function showMovableTokens(movableTokens) {
+    function showMovableTokens(movable) {
 
         clearTokenHighlights();
 
-        movableTokens.forEach(token => {
+        movable.forEach(token => {
             token.element.classList.add("movable");
         });
     }
 
-    /* ==========================================
-       DICE CONTROLS
-    ========================================== */
+    /* =====================================================
+       20. TURN SNAPSHOT AND FULL ROLLBACK
+    ===================================================== */
+
+    function createTurnSnapshot() {
+
+        return tokens.map(playerTokens => {
+
+            return playerTokens.map(token => ({
+                progress: token.progress,
+                finished: token.finished
+            }));
+        });
+    }
+
+    function restoreTurnSnapshot() {
+
+        if (!turnSnapshot) return;
+
+        tokens.forEach((playerTokens, playerIndex) => {
+
+            playerTokens.forEach((token, tokenIndex) => {
+
+                const saved = turnSnapshot[playerIndex][tokenIndex];
+
+                token.progress = saved.progress;
+                token.finished = saved.finished;
+
+                const destination = getTokenCell(token);
+
+                if (destination) {
+                    destination.appendChild(token.element);
+                } else {
+                    token.homeElement.appendChild(token.element);
+                }
+
+                updateTokenLabel(token);
+            });
+        });
+
+        clearTokenHighlights();
+
+        setStatus(
+            "Three consecutive sixes! The entire turn has been cancelled and all moves have been reversed."
+        );
+    }
+
+    /* =====================================================
+       21. DICE CONTROLS
+    ===================================================== */
 
     function setDiceDisabled(disabled) {
 
         rollButton.disabled = disabled;
 
-        dice.disabled = disabled;
+        dice.style.pointerEvents = disabled ? "none" : "auto";
 
         updatePlayerDisplay();
-    }
-
-    function enableDice() {
-
-        if (gameOver) return;
-
-        waitingForToken = false;
-        isRolling = false;
-        isMoving = false;
-
-        clearTokenHighlights();
-
-        updatePlayerTurn();
-
-        const player = getCurrentPlayer();
-
-        if (!player) return;
-
-        const bot = player.isBot;
-
-        setDiceDisabled(bot);
-
-        diceMessage.textContent = bot
-            ? `${player.name} is thinking...`
-            : `${player.name}, roll the dice!`;
-
-        if (bot) {
-            schedule(botRoll, 900);
-        }
     }
 
     function rollDice() {
@@ -836,6 +1136,7 @@ document.addEventListener("DOMContentLoaded", function () {
             isMoving ||
             waitingForToken ||
             gameOver ||
+            openingRound ||
             isBot(currentPlayer)
         ) {
             return;
@@ -850,9 +1151,19 @@ document.addEventListener("DOMContentLoaded", function () {
             isRolling ||
             isMoving ||
             waitingForToken ||
-            gameOver
+            gameOver ||
+            openingRound
         ) {
             return;
+        }
+
+        /*
+           Capture the board state before the first roll
+           of this player's turn.
+        */
+        if (!turnSnapshot) {
+            turnSnapshot = createTurnSnapshot();
+            consecutiveSixes = 0;
         }
 
         isRolling = true;
@@ -871,11 +1182,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
         schedule(() => {
 
-            if (gameOver) return;
-
             currentRoll = result;
 
             dice.dataset.value = String(result);
+            dice.textContent = String(result);
 
             dice.setAttribute(
                 "aria-label",
@@ -888,6 +1198,36 @@ document.addEventListener("DOMContentLoaded", function () {
 
             isRolling = false;
 
+            /* THREE CONSECUTIVE SIXES */
+            if (result === 6) {
+
+                consecutiveSixes++;
+
+                if (consecutiveSixes === 3) {
+
+                    restoreTurnSnapshot();
+
+                    currentRoll = 0;
+
+                    waitingForToken = false;
+                    isMoving = false;
+
+                    turnSnapshot = null;
+                    consecutiveSixes = 0;
+
+                    diceMessage.textContent =
+                        "Three sixes! Your complete turn has been cancelled.";
+
+                    schedule(nextPlayer, 1400);
+
+                    return;
+                }
+
+            } else {
+
+                consecutiveSixes = 0;
+            }
+
             const movable = getMovableTokens(
                 currentPlayer,
                 result
@@ -895,21 +1235,22 @@ document.addEventListener("DOMContentLoaded", function () {
 
             if (movable.length === 0) {
 
-                diceMessage.textContent = result === 6
-                    ? "Six! No legal move. Roll again!"
-                    : "No legal move. Next player's turn.";
+                if (result === 6) {
 
-                schedule(() => {
+                    diceMessage.textContent =
+                        "Six! No legal move. You may roll again.";
 
-                    if (gameOver) return;
+                    schedule(enableDice, 900);
 
-                    if (result === 6) {
-                        enableDice();
-                    } else {
-                        nextPlayer();
-                    }
+                } else {
 
-                }, 1000);
+                    diceMessage.textContent =
+                        "No legal move. Turn passed.";
+
+                    turnSnapshot = null;
+
+                    schedule(nextPlayer, 900);
+                }
 
                 return;
             }
@@ -920,9 +1261,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
             const player = getCurrentPlayer();
 
-            diceMessage.textContent = result === 6
-                ? `${player.name} rolled a SIX! Select a token.`
-                : `${player.name} rolled ${result}. Select a highlighted token.`;
+            diceMessage.textContent =
+                `${player.name} rolled ${result}. Select a highlighted token.`;
 
             if (player.isBot) {
                 schedule(botChooseToken, 700);
@@ -933,13 +1273,17 @@ document.addEventListener("DOMContentLoaded", function () {
         }, 650);
     }
 
-    /* ==========================================
-       COMPUTER PLAYER
-    ========================================== */
+    /* =====================================================
+       22. COMPUTER PLAYER
+    ===================================================== */
 
     function botRoll() {
 
-        if (gameOver || !isBot(currentPlayer)) {
+        if (
+            gameOver ||
+            !isBot(currentPlayer) ||
+            openingRound
+        ) {
             return;
         }
 
@@ -963,52 +1307,53 @@ document.addEventListener("DOMContentLoaded", function () {
 
         if (!movable.length) return;
 
-        // Prefer a move that finishes a token.
-        let chosen = movable.find(token => {
+        /* Priority 1: finish a token. */
+        let chosen = movable.find(token =>
+            token.progress >= 0 &&
+            token.progress + currentRoll === 57
+        );
 
-            return token.progress >= 0 &&
-                token.progress + currentRoll === 57;
-        });
-
-        // Otherwise prefer capturing an opponent.
+        /* Priority 2: capture an opponent. */
         if (!chosen) {
 
             chosen = movable.find(token => {
 
-                if (
-                    token.progress < 0 ||
-                    token.progress > 51
-                ) {
+                if (token.progress < 0 || token.progress > 51) {
                     return false;
                 }
 
                 const landingIndex = (
-                    players[currentPlayer].startIndex +
+                    getPlayerConfig(currentPlayer).startIndex +
                     token.progress +
                     currentRoll
                 ) % 52;
 
-                return !safePositions.includes(landingIndex) &&
-                    tokens.flat().some(other => {
+                if (safePositions.includes(landingIndex)) {
+                    return false;
+                }
 
-                        return other.playerIndex !== currentPlayer &&
-                            !other.finished &&
-                            other.progress >= 0 &&
-                            other.progress <= 51 &&
-                            getMainTrackIndex(other) === landingIndex;
-                    });
+                const enemies = tokens.flat().filter(other => {
+
+                    return isOpponent(
+                        currentPlayer,
+                        other.playerIndex
+                    ) &&
+                        !other.finished &&
+                        other.progress >= 0 &&
+                        other.progress <= 51 &&
+                        getMainTrackIndex(other) === landingIndex;
+                });
+
+                return enemies.length === 1;
             });
         }
 
-        // Prefer bringing a token out of home.
+        /* Priority 3: release a token from base. */
         if (!chosen) {
-
-            chosen = movable.find(
-                token => token.progress === -1
-            );
+            chosen = movable.find(token => token.progress === -1);
         }
 
-        // Otherwise move the token furthest along.
+        /* Priority 4: advance the furthest token. */
         if (!chosen) {
 
             chosen = movable.reduce((best, token) => {
@@ -1022,9 +1367,9 @@ document.addEventListener("DOMContentLoaded", function () {
         selectToken(chosen);
     }
 
-    /* ==========================================
-       CAPTURE OPPONENT TOKENS
-    ========================================== */
+    /* =====================================================
+       23. CAPTURE RULES
+    ===================================================== */
 
     function captureOpponentTokens(movingToken) {
 
@@ -1036,23 +1381,36 @@ document.addEventListener("DOMContentLoaded", function () {
             return 0;
         }
 
-        const opponents = tokens.flat().filter(other => {
+        const enemies = tokens.flat().filter(other => {
 
             if (
                 other.finished ||
-                other.playerIndex === movingToken.playerIndex
+                other.progress < 0 ||
+                other.progress > 51
             ) {
+                return false;
+            }
+
+            if (!isOpponent(
+                movingToken.playerIndex,
+                other.playerIndex
+            )) {
                 return false;
             }
 
             return getMainTrackIndex(other) === landingIndex;
         });
 
-        if (opponents.length !== 1) {
+        /*
+           Capture only when exactly one opponent token
+           occupies the landing square.
+        */
+
+        if (enemies.length !== 1) {
             return 0;
         }
 
-        const captured = opponents[0];
+        const captured = enemies[0];
 
         captured.progress = -1;
         captured.finished = false;
@@ -1064,9 +1422,9 @@ document.addEventListener("DOMContentLoaded", function () {
         return 1;
     }
 
-    /* ==========================================
-       SELECT TOKEN
-    ========================================== */
+    /* =====================================================
+       24. TOKEN SELECTION
+    ===================================================== */
 
     function selectToken(token) {
 
@@ -1089,7 +1447,6 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         waitingForToken = false;
-
         isMoving = true;
 
         clearTokenHighlights();
@@ -1101,35 +1458,32 @@ document.addEventListener("DOMContentLoaded", function () {
         moveToken(token);
     }
 
-    /* ==========================================
-       MOVE TOKEN
-    ========================================== */
+    /* =====================================================
+       25. TOKEN MOVEMENT
+    ===================================================== */
 
     function moveToken(token) {
 
         const diceValue = currentRoll;
 
-        // Bring a token out of home on a six.
+        /* Release from base on a six. */
         if (token.progress === -1) {
 
             token.progress = 0;
 
-            const startCell = getTokenCell(token);
+            const destination = getTokenCell(token);
 
-            if (!startCell) {
-
-                console.error("Starting cell not found.");
-
+            if (!destination) {
+                console.error("Starting cell could not be found.");
                 finishTokenMove(token);
-
                 return;
             }
 
-            startCell.appendChild(token.element);
+            destination.appendChild(token.element);
 
             updateTokenLabel(token);
 
-            finishTokenMove(token);
+            schedule(() => finishTokenMove(token), 180);
 
             return;
         }
@@ -1146,21 +1500,20 @@ document.addEventListener("DOMContentLoaded", function () {
             }
 
             token.progress++;
-
             stepsMoved++;
 
-            const targetCell = getTokenCell(token);
+            const destination = getTokenCell(token);
 
-            if (!targetCell) {
+            if (!destination) {
 
-                console.error("Token destination not found.");
+                console.error("Token destination could not be found.");
 
                 finishTokenMove(token);
 
                 return;
             }
 
-            targetCell.appendChild(token.element);
+            destination.appendChild(token.element);
 
             updateTokenLabel(token);
 
@@ -1170,15 +1523,14 @@ document.addEventListener("DOMContentLoaded", function () {
         moveOneStep();
     }
 
-    /* ==========================================
-       WIN CHECK
-    ========================================== */
+    /* =====================================================
+       26. WIN CONDITIONS
+    ===================================================== */
 
     function getWinningTeam(playerIndex) {
 
         const team = getPlayerTeam(playerIndex);
 
-        // Individual match.
         if (!team) {
 
             return tokens[playerIndex].every(
@@ -1188,21 +1540,20 @@ document.addEventListener("DOMContentLoaded", function () {
                 : null;
         }
 
-        // Team match.
         const config = getMatchConfiguration(selectedMatch);
 
         const teammates = team === "A"
             ? config.teamA
             : config.teamB;
 
-        const teamHasWon = teammates.every(index => {
+        const teamWon = teammates.every(index => {
 
             return tokens[index].every(
                 token => token.finished
             );
         });
 
-        return teamHasWon ? team : null;
+        return teamWon ? team : null;
     }
 
     function showWinner(playerIndex, winningTeam) {
@@ -1222,10 +1573,7 @@ document.addEventListener("DOMContentLoaded", function () {
         if (!player) return;
 
         let title = "CONGRATULATIONS!";
-
-        let message =
-            `${player.name} has won HIDAMES Ludo!`;
-
+        let message = `${player.name} has won HIDAMES Ludo!`;
         let winnerName = player.name;
 
         if (
@@ -1234,27 +1582,30 @@ document.addEventListener("DOMContentLoaded", function () {
         ) {
 
             title = "TEAM VICTORY!";
-
             winnerName = `Team ${winningTeam}`;
 
             message =
                 `Team ${winningTeam} has won HIDAMES Ludo!`;
         }
 
-        $("winnerTitle").textContent = title;
+        if ($("winnerTitle")) {
+            $("winnerTitle").textContent = title;
+        }
 
-        $("winnerMessage").textContent = message;
+        if ($("winnerMessage")) {
+            $("winnerMessage").textContent = message;
+        }
 
-        $("winnerName").textContent = winnerName;
+        if ($("winnerName")) {
+            $("winnerName").textContent = winnerName;
+        }
 
         showScreen("winner");
-
-        console.log(`${winnerName} won HIDAMES Ludo!`);
     }
 
-    /* ==========================================
-       FINISH TOKEN MOVEMENT
-    ========================================== */
+    /* =====================================================
+       27. FINISH MOVEMENT
+    ===================================================== */
 
     function finishTokenMove(token) {
 
@@ -1264,25 +1615,40 @@ document.addEventListener("DOMContentLoaded", function () {
 
         const capturedCount = captureOpponentTokens(token);
 
-        if (token.progress === 57) {
+        const finishedNow = token.progress === 57 &&
+            !token.finished;
+
+        if (finishedNow) {
 
             token.finished = true;
 
             updateTokenLabel(token);
-
-            diceMessage.textContent =
-                `${getCurrentPlayer().name} finished a token!`;
-
-        } else {
-
-            diceMessage.textContent =
-                `${getCurrentPlayer().name} moved ${currentRoll} steps.`;
         }
+
+        const player = getCurrentPlayer();
+
+        let bonusTurn = false;
 
         if (capturedCount > 0) {
 
-            diceMessage.textContent +=
-                " Opponent token captured!";
+            bonusTurn = true;
+
+            diceMessage.textContent =
+                `${player.name} captured an opponent token! Bonus roll earned.`;
+        }
+
+        if (finishedNow) {
+
+            bonusTurn = true;
+
+            diceMessage.textContent =
+                `${player.name} finished a token! Bonus roll earned.`;
+        }
+
+        if (capturedCount > 0 && finishedNow) {
+
+            diceMessage.textContent =
+                `${player.name} captured an opponent and finished a token!`;
         }
 
         const winningTeam = getWinningTeam(currentPlayer);
@@ -1296,21 +1662,57 @@ document.addEventListener("DOMContentLoaded", function () {
 
         updatePlayerDisplay();
 
-        if (currentRoll === 6) {
+        /*
+           A six, capture or finishing a token earns an
+           additional roll. A third six was already handled
+           before token selection.
+        */
 
-            diceMessage.textContent += " Extra turn!";
+        if (currentRoll === 6 || bonusTurn) {
 
-            schedule(enableDice, 800);
+            diceMessage.textContent += " Extra roll!";
+
+            schedule(enableDice, 850);
 
         } else {
 
-            schedule(nextPlayer, 800);
+            turnSnapshot = null;
+            consecutiveSixes = 0;
+
+            schedule(nextPlayer, 850);
         }
     }
 
-    /* ==========================================
-       NEXT PLAYER
-    ========================================== */
+    /* =====================================================
+       28. TURN MANAGEMENT
+    ===================================================== */
+
+    function enableDice() {
+
+        if (gameOver) return;
+
+        waitingForToken = false;
+        isRolling = false;
+        isMoving = false;
+
+        clearTokenHighlights();
+
+        updatePlayerTurn();
+
+        const player = getCurrentPlayer();
+
+        if (!player) return;
+
+        setDiceDisabled(player.isBot);
+
+        diceMessage.textContent = player.isBot
+            ? `${player.name} is thinking...`
+            : `${player.name}, roll the dice!`;
+
+        if (player.isBot) {
+            schedule(botRoll, 900);
+        }
+    }
 
     function nextPlayer() {
 
@@ -1320,27 +1722,148 @@ document.addEventListener("DOMContentLoaded", function () {
 
         waitingForToken = false;
 
+        turnSnapshot = null;
+        consecutiveSixes = 0;
+        currentRoll = 0;
+
         clearTokenHighlights();
 
-        const currentPosition = activePlayers.findIndex(
+        const position = activePlayers.findIndex(
             player => player.index === currentPlayer
         );
 
         const nextPosition =
-            (currentPosition + 1) % activePlayers.length;
+            (position + 1) % activePlayers.length;
 
         currentPlayer = activePlayers[nextPosition].index;
 
         enableDice();
     }
 
-    /* ==========================================
-       START GAME
-    ========================================== */
+    /* =====================================================
+       29. OPENING DICE ROUND
+    ===================================================== */
+
+    /*
+       Each player rolls once.
+       The highest roll starts.
+       If players tie for the highest roll, only those
+       players reroll until there is one winner.
+    */
+
+    function openingDiceRound() {
+
+        openingRound = true;
+
+        setDiceDisabled(true);
+
+        const openingPlayers = activePlayers.map(player => player.index);
+
+        if (openingRollStatus) {
+            openingRollStatus.textContent =
+                "Opening round: each player is rolling once...";
+        }
+
+        const results = {};
+
+        function rollOpeningPlayer(index, callback) {
+
+            const value = Math.floor(Math.random() * 6) + 1;
+
+            results[index] = value;
+
+            const player = activePlayers.find(
+                item => item.index === index
+            );
+
+            if (openingRollStatus) {
+
+                openingRollStatus.textContent =
+                    `${player.name} rolled ${value}.`;
+            }
+
+            dice.dataset.value = String(value);
+            dice.textContent = String(value);
+
+            lastRoll.textContent = String(value);
+
+            schedule(callback, 650);
+        }
+
+        function rollRound(contenders, initialRound) {
+
+            let position = 0;
+
+            function nextOpeningRoll() {
+
+                if (position >= contenders.length) {
+
+                    const highest = Math.max(
+                        ...contenders.map(index => results[index])
+                    );
+
+                    const winners = contenders.filter(
+                        index => results[index] === highest
+                    );
+
+                    if (winners.length === 1) {
+
+                        currentPlayer = winners[0];
+
+                        openingRound = false;
+
+                        if (openingRollStatus) {
+
+                            const winner = activePlayers.find(
+                                player => player.index === currentPlayer
+                            );
+
+                            openingRollStatus.textContent =
+                                `${winner.name} rolled the highest and starts!`;
+                        }
+
+                        diceMessage.textContent =
+                            "Opening round complete. Good luck!";
+
+                        enableDice();
+
+                        return;
+                    }
+
+                    if (openingRollStatus) {
+                        openingRollStatus.textContent =
+                            `Tie at ${highest}! Tied players must roll again.`;
+                    }
+
+                    contenders = winners;
+
+                    position = 0;
+
+                    schedule(nextOpeningRoll, 900);
+
+                    return;
+                }
+
+                const index = contenders[position++];
+
+                rollOpeningPlayer(index, nextOpeningRoll);
+            }
+
+            nextOpeningRoll();
+        }
+
+        rollRound(openingPlayers, true);
+    }
+
+    /* =====================================================
+       30. START GAME
+    ===================================================== */
 
     function startGame() {
 
         if (!selectedMode || !selectedMatch) {
+            setupMessage.textContent =
+                "Choose a game mode and match type first.";
             return;
         }
 
@@ -1348,6 +1871,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
             setupMessage.textContent = onlineMessage;
 
+            return;
+        }
+
+        if (!validateColors()) {
             return;
         }
 
@@ -1366,10 +1893,11 @@ document.addEventListener("DOMContentLoaded", function () {
             };
         });
 
-        // Update team labels with the latest player names.
-        if (config.teams) {
-            renderTeamAssignment(config);
-        }
+        players.forEach(player => {
+            player.name = getPlayerName(player.index);
+        });
+
+        renderTeamAssignment(config);
 
         currentPlayer = activePlayers[0].index;
 
@@ -1379,40 +1907,40 @@ document.addEventListener("DOMContentLoaded", function () {
         isMoving = false;
         waitingForToken = false;
         gameOver = false;
+        openingRound = false;
+
+        consecutiveSixes = 0;
+        turnSnapshot = null;
 
         createBoard();
 
-        // Reset the dice display.
         dice.classList.remove("rolling");
-
         dice.dataset.value = "1";
+        dice.textContent = "1";
 
-        dice.setAttribute(
-            "aria-label",
-            "Dice showing 1"
-        );
+        dice.setAttribute("aria-label", "Dice showing 1");
 
         lastRoll.textContent = "—";
 
         showScreen("game");
 
-        enableDice();
+        updatePlayerDisplay();
 
-        console.log("HIDAMES Ludo game started.");
+        setStatus("The opening dice round is starting.");
+
+        openingDiceRound();
     }
 
     startGameBtn.addEventListener("click", startGame);
 
-    /* ==========================================
-       RESET / PLAY AGAIN
-    ========================================== */
+    /* =====================================================
+       31. RESTART GAME
+    ===================================================== */
 
     function restartGame() {
 
         if (!activePlayers.length) {
-
             showScreen("setup");
-
             return;
         }
 
@@ -1426,36 +1954,31 @@ document.addEventListener("DOMContentLoaded", function () {
         isMoving = false;
         waitingForToken = false;
         gameOver = false;
+        openingRound = false;
+
+        consecutiveSixes = 0;
+        turnSnapshot = null;
 
         createBoard();
 
         dice.classList.remove("rolling");
-
         dice.dataset.value = "1";
-
-        dice.setAttribute(
-            "aria-label",
-            "Dice showing 1"
-        );
+        dice.textContent = "1";
 
         lastRoll.textContent = "—";
 
         showScreen("game");
 
-        enableDice();
+        openingDiceRound();
     }
 
     if ($("playAgainBtn")) {
-
-        $("playAgainBtn").addEventListener(
-            "click",
-            restartGame
-        );
+        $("playAgainBtn").addEventListener("click", restartGame);
     }
 
-    /* ==========================================
-       BACK TO MENU
-    ========================================== */
+    /* =====================================================
+       32. BACK TO MENU
+    ===================================================== */
 
     function backToMenu() {
 
@@ -1466,31 +1989,31 @@ document.addEventListener("DOMContentLoaded", function () {
         isRolling = false;
         isMoving = false;
         waitingForToken = false;
-
-        clearTokenHighlights();
+        openingRound = false;
 
         activePlayers = [];
 
         selectedMode = "";
         selectedMatch = "";
 
+        turnSnapshot = null;
+        consecutiveSixes = 0;
+
+        clearTokenHighlights();
+
         document.querySelectorAll(
             ".mode-card, .match-option"
         ).forEach(button => {
-
-            button.classList.remove(
-                "active",
-                "selected"
-            );
+            button.classList.remove("active", "selected");
         });
 
         matchSection.hidden = true;
 
-        onlineSetup.hidden = true;
+        if (onlineSetup) onlineSetup.hidden = true;
 
         nameSection.hidden = true;
 
-        teamSection.hidden = true;
+        if (teamSection) teamSection.hidden = true;
 
         startGameBtn.disabled = true;
 
@@ -1501,29 +2024,20 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     if ($("backToMenuBtn")) {
-
-        $("backToMenuBtn").addEventListener(
-            "click",
-            backToMenu
-        );
+        $("backToMenuBtn").addEventListener("click", backToMenu);
     }
 
     if ($("winnerMenuBtn")) {
-
-        $("winnerMenuBtn").addEventListener(
-            "click",
-            backToMenu
-        );
+        $("winnerMenuBtn").addEventListener("click", backToMenu);
     }
 
-    /* ==========================================
-       TOKEN CLICK / KEYBOARD EVENTS
-    ========================================== */
+    /* =====================================================
+       33. TOKEN CLICK AND KEYBOARD EVENTS
+    ===================================================== */
 
     tokens.flat().forEach(token => {
 
         token.element.addEventListener("click", () => {
-
             selectToken(token);
         });
 
@@ -1541,52 +2055,55 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
 
-    /* ==========================================
-       DICE BUTTON EVENTS
-    ========================================== */
+    /* =====================================================
+       34. DICE EVENTS
+    ===================================================== */
 
-    rollButton.addEventListener(
-        "click",
-        rollDice
-    );
+    rollButton.addEventListener("click", rollDice);
 
-    dice.addEventListener(
-        "click",
-        rollDice
-    );
+    dice.addEventListener("click", rollDice);
 
-    document.querySelectorAll(
-        "[data-player-roll]"
-    ).forEach(button => {
+    document.querySelectorAll("[data-player-roll]").forEach(button => {
 
-        button.addEventListener("click", function () {
+        button.addEventListener("click", () => {
 
-            const playerIndex =
-                Number(button.dataset.playerRoll);
+            const index = Number(button.dataset.playerRoll);
 
-            if (playerIndex !== currentPlayer) {
-                return;
-            }
+            if (index !== currentPlayer) return;
 
             rollDice();
         });
     });
 
-    /* ==========================================
-       INITIAL STATE
-    ========================================== */
+    /* =====================================================
+       35. INITIALIZATION
+    ===================================================== */
+
+    assignTokenHomes();
 
     createBoard();
 
     showScreen("setup");
 
     matchSection.hidden = true;
-    onlineSetup.hidden = true;
+
+    if (onlineSetup) onlineSetup.hidden = true;
+
     nameSection.hidden = true;
-    teamSection.hidden = true;
+
+    if (teamSection) teamSection.hidden = true;
 
     startGameBtn.disabled = true;
 
-    console.log("HIDAMES Ludo setup is ready!");
+    if (colorMessage) {
+        colorMessage.textContent =
+            "Choose a different colour for each player.";
+    }
+
+    if (openingRollStatus) {
+        openingRollStatus.textContent = "";
+    }
+
+    console.log("HIDAMES Ludo rulebook engine initialized.");
 
 });
