@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="description" content="HIDAMES Ludo King Edition - Premium browser-based Ludo game with multi-player, teams, AI, and online modes.">
-  <title>Ludo King | HIDAMES</title>
+  <title>Hidames Ludo | HIDAMES</title>
   
   <!-- Supabase JS Client for Realtime Online Multiplayer -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -28,7 +28,7 @@
 
     <div class="header-center">
       <div class="logo">HID<span>AMES</span></div>
-      <div class="game-tag">LUDO KING EDITION</div>
+      <div class="game-tag">Hidames Ludo EDITION</div>
     </div>
 
     <div class="header-right">
@@ -170,14 +170,14 @@
     <div class="modal-card setup-card">
       <div class="modal-brand">
         <div class="logo">HID<span>AMES</span></div>
-        <h2>LUDO KING LOBBY</h2>
-        <p>Configure your match, customize names, and choose game rules</p>
+        <h2>HIDAMES LOBBY</h2>
+        <p>Select game mode, choose players,Customize names & start playing</p>
       </div>
 
       <!-- Mode Selector Tabs -->
       <div class="tab-group">
         <button class="tab-btn active" data-tab="local" onclick="switchSetupTab('local')">Same Device</button>
-        <button class="tab-btn" data-tab="ai" onclick="switchSetupTab('ai')">Vs Computer</button>
+        <button class="tab-btn" data-tab="ai" onclick="switchSetupTab('ai')">Hidames AI</button>
         <button class="tab-btn" data-tab="online" onclick="switchSetupTab('online')">Online Rooms</button>
       </div>
 
@@ -225,7 +225,7 @@
           <button class="action-btn-gold w-full" onclick="createOnlineRoom()">Create Private Room</button>
           
           <div class="supabase-notice" id="supabaseNotice">
-            <p><strong>⚡ Realtime Engine:</strong> Powered by Supabase Realtime backend. If self-hosting, configure keys in <code>ludo.js</code>.</p>
+            <p><strong>⚡ Hidames Engine:</strong> Play with friends anywhere by sharing your room code!</p>
           </div>
         </div>
       </div>
@@ -262,7 +262,7 @@
     <div class="modal-card rules-card">
       <div class="modal-brand">
         <h2>HIDAMES LUDO RULES</h2>
-        <p>Official Ludo King Tournament Standards</p>
+        <p>Official Hidames Ludo Standards</p>
       </div>
 
       <div class="rules-scrollable">
@@ -308,7 +308,7 @@
       <div class="trophy-bounce">🏆</div>
       <h2 id="winnerText">CHAMPION!</h2>
       <div class="winner-badge" id="winnerBadge"></div>
-      <p id="winnerSub">Congratulations on dominating the Hidames board!</p>
+      <p id="winnerSub">Congratulations on dominating the Hidames Ludo board!</p>
       
       <div class="victory-actions">
         <button class="action-btn-gold" onclick="restartWithSameSettings()">PLAY AGAIN</button>
