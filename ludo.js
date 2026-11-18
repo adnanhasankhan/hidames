@@ -1,13 +1,13 @@
 /* ==========================================================================
-   HIDAMES LUDO KING - COMPLETE ENGINE & FLAWLESS MULTIPLAYER SYNCHRONIZATION
-   Features:
-   - Complete Tab Isolation (Online Rooms vs Same Device & AI)
-   - Centered HIDAMES Gold Logo in Center Finish Goal
-   - Authoritative Realtime Synchronization for Captures & Extra Turns
-   - Zero-Freeze PeerJS WebRTC P2P Multiplayer
-   - WhatsApp Share & 6-Character Room Codes (e.g. HD82K9)
-   - Fixed-Size Pawns & 15x15 Grid Track Coordinates
-   - Web Audio API Sound Synthesis
+   HIDAMES LUDO KING - COMPLETE ENGINE WITH CRISS-CROSS & RECONNECTION
+   Full Implementation of Specifications:
+   - Criss-Cross Color Pairing (Red <-> Yellow, Green <-> Blue)
+   - Accidental Page Refresh Guard (beforeunload + overscroll-behavior-y)
+   - Online Reconnection to Ongoing Matches (No "Room Full" error on re-entry)
+   - Synchronized Knockouts & Extra Rolls across WebRTC
+   - Dedicated Tab Isolation (Online Rooms vs Local / AI)
+   - Centered HIDAMES Gold Logo on Board Finish Goal
+   - Web Audio API Sound Synthesizer
    ========================================================================== */
 
 // --- 1. Synthesized Web Audio Manager ---
@@ -77,7 +77,7 @@ class SoundManager {
 
 const sounds = new SoundManager();
 
-// --- 2. Track & Coordinates Mapping (15x15 Grid) ---
+// --- 2. Track & Coordinates Mapping (15x15 CSS Grid) ---
 const TRACK_COORDINATES = [
   /* Red Arm: 0 to 4 */
   {r: 6, c: 1}, {r: 6, c: 2}, {r: 6, c: 3}, {r: 6, c: 4}, {r: 6, c: 5},
@@ -108,6 +108,14 @@ const TRACK_COORDINATES = [
 const SAFE_INDICES = [0, 8, 13, 21, 26, 34, 39, 47];
 const START_INDEX = { red: 0, green: 13, yellow: 26, blue: 39 };
 
+// Criss-Cross Diagonals (Red <-> Yellow, Green <-> Blue)
+const CRISS_CROSS_PAIRS = {
+  red: 'yellow',
+  yellow: 'red',
+  green: 'blue',
+  blue: 'green'
+};
+
 const HOME_RUNWAYS = {
   red:    [{r: 7, c: 1}, {r: 7, c: 2}, {r: 7, c: 3}, {r: 7, c: 4}, {r: 7, c: 5}],
   green:  [{r: 1, c: 7}, {r: 2, c: 7}, {r: 3, c: 7}, {r: 4, c: 7}, {r: 5, c: 7}],
@@ -133,7 +141,14 @@ const DICE_PIPS = {
 
 const ALL_COLORS = ['red', 'green', 'yellow', 'blue'];
 
-// --- 3. Game Configuration & State ---
+// --- 3. Persistent Client Session ID for Seamless Reconnection ---
+let mySessionId = localStorage.getItem('hidames_player_session_id');
+if (!mySessionId) {
+  mySessionId = 'sess_' + Math.random().toString(36).substring(2, 10);
+  localStorage.setItem('hidames_player_session_id', mySessionId);
+}
+
+// Game Configuration & State
 let currentConfig = {
   mode: 'local', // 'local' | 'ai' | 'online'
   format: '4',   // '2' | '3' | '4' | '2v2' | '1v2' | '1v3'
@@ -142,12 +157,13 @@ let currentConfig = {
   fastMode: false,
   players: [
     { id: 1, color: 'red', name: 'Player 1', isAi: false, team: 1 },
-    { id: 2, color: 'green', name: 'Player 2', isAi: false, team: 2 },
-    { id: 3, color: 'yellow', name: 'Player 3', isAi: false, team: 1 },
+    { id: 2, color: 'yellow', name: 'Player 2', isAi: false, team: 2 },
+    { id: 3, color: 'green', name: 'Player 3', isAi: false, team: 1 },
     { id: 4, color: 'blue', name: 'Player 4', isAi: false, team: 2 }
   ]
 };
 
+let isMatchActive = false;
 let activePlayers = [];
 let currentTurnIdx = 0;
 let diceVal = null;
@@ -159,10 +175,20 @@ let tokens = {};
 
 // Online State
 let onlineRole = null;
-let myOnlineColor = null;
+let myOnlineColor = 'red';
 let onlineCapacity = 4;
+let hostChosenColor = 'red';
 
-// --- 4. Setup Modal Logic & Strict Tab Isolation ---
+// --- 4. Browser Refresh Guard (Prevents accidental reload & mobile pull-to-refresh) ---
+window.addEventListener('beforeunload', (e) => {
+  if (isMatchActive) {
+    e.preventDefault();
+    e.returnValue = 'Match in progress. Leaving will pause your game!';
+    return e.returnValue;
+  }
+});
+
+// --- 5. Setup Modal Logic & Criss-Cross Color Selection ---
 function switchSetupTab(tab) {
   currentConfig.mode = tab;
 
@@ -199,6 +225,11 @@ function switchSetupTab(tab) {
       document.getElementById('rosterTitleLabel').textContent = 'Player Roster & Color Selection:';
     }
 
+    // Default criss-cross for 2 players
+    if (currentConfig.format === '2') {
+      currentConfig.players[1].color = CRISS_CROSS_PAIRS[currentConfig.players[0].color];
+    }
+
     renderRosterGrid();
   }
 }
@@ -206,6 +237,12 @@ function switchSetupTab(tab) {
 function setMatchFormat(fmt) {
   currentConfig.format = fmt;
   document.querySelectorAll('.chip-btn').forEach(b => b.classList.toggle('active', b.dataset.format === fmt));
+
+  // If 2 players, enforce criss-cross diagonal colors
+  if (fmt === '2') {
+    currentConfig.players[1].color = CRISS_CROSS_PAIRS[currentConfig.players[0].color];
+  }
+
   renderRosterGrid();
 }
 
@@ -252,14 +289,31 @@ function updatePlayerName(idx, val) {
   if (idx === 0) localStorage.setItem('hidames_player_name', currentConfig.players[0].name);
 }
 
+// User selects color in any mode
 function selectPlayerColor(idx, newColor) {
-  const otherIdx = currentConfig.players.findIndex((p, i) => i !== idx && p.color === newColor);
-  if (otherIdx !== -1) {
-    const oldColor = currentConfig.players[idx].color;
-    currentConfig.players[otherIdx].color = oldColor;
-  }
   currentConfig.players[idx].color = newColor;
+
+  if (currentConfig.format === '2') {
+    // Automatically pair opponent with Criss-Cross opposite color!
+    const otherIdx = idx === 0 ? 1 : 0;
+    currentConfig.players[otherIdx].color = CRISS_CROSS_PAIRS[newColor];
+  } else {
+    // If color is taken, swap with the other player
+    const otherIdx = currentConfig.players.findIndex((p, i) => i !== idx && p.color === newColor);
+    if (otherIdx !== -1) {
+      const remainingColor = ALL_COLORS.find(c => !currentConfig.players.slice(0, 4).some(p => p.color === c));
+      currentConfig.players[otherIdx].color = remainingColor || 'yellow';
+    }
+  }
+
   renderRosterGrid();
+}
+
+function selectHostOnlineColor(color) {
+  hostChosenColor = color;
+  document.querySelectorAll('.online-color-select-row .color-dot-opt').forEach(dot => {
+    dot.classList.toggle('selected', dot.id === `host-color-${color}`);
+  });
 }
 
 function togglePlayerAi(idx) {
@@ -288,7 +342,7 @@ function closeRulesModal() {
   document.getElementById('rulesModal').classList.add('hidden');
 }
 
-// --- 5. Game Initialization ---
+// --- 6. Game Initialization ---
 function confirmMatchSetup() {
   currentConfig.blockadesEnabled = document.getElementById('blockadeToggle').checked;
   currentConfig.openingRoundEnabled = document.getElementById('openingRoundToggle').checked;
@@ -303,6 +357,7 @@ function restartWithSameSettings() {
 }
 
 function initMatch() {
+  isMatchActive = true;
   let count = 4;
   if (currentConfig.format === '2') count = 2;
   else if (currentConfig.format === '3' || currentConfig.format === '1v2') count = 3;
@@ -361,7 +416,7 @@ function initMatch() {
   }
 }
 
-// --- 6. Opening Dice Round (Specification §4) ---
+// Opening Dice Round
 async function runOpeningDiceRound() {
   const modal = document.getElementById('openingRollModal');
   const container = document.getElementById('openingRollersContainer');
@@ -426,12 +481,11 @@ async function runOpeningDiceRound() {
   }
 }
 
-// --- 7. Board Construction (15x15 CSS Grid with Centered Logo) ---
+// 15x15 Grid Board with Centered Logo
 function buildBoard() {
   const board = document.getElementById('ludoBoard');
   board.querySelectorAll('.cell, .base-quadrant, .center-goal').forEach(e => e.remove());
 
-  // 1. Base Quadrants
   board.insertAdjacentHTML('beforeend', `
     <div class="base-quadrant base-red"><div class="base-inner-card" id="slots-red"></div></div>
     <div class="base-quadrant base-green"><div class="base-inner-card" id="slots-green"></div></div>
@@ -446,7 +500,7 @@ function buildBoard() {
     }
   });
 
-  // 2. Center Goal Triangles with Beautifully Centered HIDAMES Gold Logo
+  // Centered HIDAMES Gold Logo
   board.insertAdjacentHTML('beforeend', `
     <div class="center-goal">
       <div class="center-triangle-red"></div>
@@ -460,7 +514,6 @@ function buildBoard() {
     </div>
   `);
 
-  // 3. 15x15 Grid Path Cells
   for (let r = 0; r < 15; r++) {
     for (let c = 0; c < 15; c++) {
       const inRedBase = (r < 6 && c < 6);
@@ -478,19 +531,16 @@ function buildBoard() {
       cell.style.gridRowStart = r + 1;
       cell.style.gridColumnStart = c + 1;
 
-      // Color Home Runways
       if (r === 7 && c >= 1 && c <= 5) cell.classList.add('path-red');
       if (c === 7 && r >= 1 && r <= 5) cell.classList.add('path-green');
       if (r === 7 && c >= 9 && c <= 13) cell.classList.add('path-yellow');
       if (c === 7 && r >= 9 && r <= 13) cell.classList.add('path-blue');
 
-      // Starting color square
       if (r === 6 && c === 1) cell.classList.add('path-red');
       if (r === 1 && c === 8) cell.classList.add('path-green');
       if (r === 8 && c === 13) cell.classList.add('path-yellow');
       if (r === 13 && c === 6) cell.classList.add('path-blue');
 
-      // Safe Stars
       TRACK_COORDINATES.forEach((coord, idx) => {
         if (coord.r === r && coord.c === c && SAFE_INDICES.includes(idx)) {
           cell.classList.add('safe-star');
@@ -502,7 +552,7 @@ function buildBoard() {
   }
 }
 
-// --- 8. Turn Flow & Snapshot ---
+// --- 7. Turn Flow & Snapshot ---
 function startTurn(color) {
   hasRolled = false;
   diceVal = null;
@@ -698,7 +748,7 @@ function isTeammate(colorA, colorB) {
   return pA.team === pB.team;
 }
 
-// --- 9. Step-by-Step Movement, Full Synchronized Knockouts & Bonus Rolls ---
+// --- 8. Step-by-Step Movement, Full Synchronized Knockouts & Bonus Rolls ---
 async function moveToken(token, isRemote = false, remoteData = null) {
   if (isMoving) return;
   isMoving = true;
@@ -731,11 +781,9 @@ async function moveToken(token, isRemote = false, remoteData = null) {
     broughtHome = true;
   }
 
-  // Knockout Detection
   let capturedTokenInfo = null;
 
   if (!isRemote) {
-    // Local player determined the move outcome
     if (token.stepCount >= 0 && token.stepCount <= 50) {
       const tileIdx = (START_INDEX[token.color] + token.stepCount) % 52;
 
@@ -746,7 +794,6 @@ async function moveToken(token, isRemote = false, remoteData = null) {
               if (opp.stepCount >= 0 && opp.stepCount <= 50) {
                 const oppTile = (START_INDEX[opp.color] + opp.stepCount) % 52;
                 if (oppTile === tileIdx) {
-                  // KNOCKOUT!
                   opp.stepCount = -1;
                   sounds.capture();
                   showToast(`⚔️ ${token.color.toUpperCase()} KNOCKED OUT ${opp.color.toUpperCase()}!`);
@@ -759,7 +806,6 @@ async function moveToken(token, isRemote = false, remoteData = null) {
       }
     }
   } else if (remoteData && remoteData.capturedToken) {
-    // Explicit remote knockout payload received
     const opp = tokens[remoteData.capturedToken.color].find(t => t.id === remoteData.capturedToken.id);
     if (opp) {
       opp.stepCount = -1;
@@ -795,7 +841,6 @@ async function moveToken(token, isRemote = false, remoteData = null) {
 
   isMoving = false;
 
-  // Decide next turn locally
   const isBonus = remoteData ? remoteData.bonusRoll : earnedBonus;
 
   if (isBonus) {
@@ -828,6 +873,7 @@ function checkVictory(activeColor) {
 
   if (teamFinished) {
     sounds.win();
+    isMatchActive = false;
     const isTeam = currentConfig.format.includes('v');
     const winnerModal = document.getElementById('winnerModal');
     const winnerText = document.getElementById('winnerText');
@@ -892,7 +938,7 @@ function pickAiMove(color, movable, roll) {
   return movable[0];
 }
 
-// --- 10. Clean Token DOM Nesting (Fixed Sizing) ---
+// Clean Token DOM Nesting
 function renderAllTokens() {
   document.querySelectorAll('.pawn').forEach(p => p.remove());
   document.querySelectorAll('.cell.has-blockade').forEach(c => c.classList.remove('has-blockade'));
@@ -972,7 +1018,7 @@ function sleep(ms) {
 }
 
 // ==========================================================================
-// --- 11. HIDAMES ONLINE ENGINE (REALTIME WEBRTC VIA PEERJS) ---
+// --- 9. HIDAMES ONLINE ENGINE WITH AUTOMATIC RECONNECTION SUPPORT ---
 // ==========================================================================
 
 class HidamesOnlineEngine {
@@ -1007,17 +1053,17 @@ class HidamesOnlineEngine {
     this.roomCode = this.generateRoomCode();
     this.isHost = true;
     onlineRole = 'host';
-    myOnlineColor = 'red';
+    myOnlineColor = hostChosenColor || 'red';
 
     const peerId = `hidames-ludo-${this.roomCode}`;
     this.peer = new Peer(peerId);
 
-    this.peer.on('open', (id) => {
+    this.peer.on('open', () => {
       document.getElementById('setupModal').classList.add('hidden');
       document.getElementById('onlineLobbyModal').classList.remove('hidden');
 
       this.lobbyPlayers = [
-        { id: 1, name: myName, color: 'red', isHost: true, status: 'ready' }
+        { id: 1, name: myName, color: myOnlineColor, isHost: true, status: 'ready', sessionId: mySessionId }
       ];
 
       this.updateLobbyUI();
@@ -1067,17 +1113,17 @@ class HidamesOnlineEngine {
 
     this.peer = new Peer();
 
-    this.peer.on('open', (id) => {
+    this.peer.on('open', () => {
       const hostPeerId = `hidames-ludo-${code}`;
       const conn = this.peer.connect(hostPeerId, { reliable: true });
 
       conn.on('open', () => {
         this.hostConnection = conn;
-        conn.send({ type: 'JOIN_REQUEST', name: myName });
+        // Send session ID with Join Request to support reconnection
+        conn.send({ type: 'JOIN_REQUEST', name: myName, sessionId: mySessionId });
 
         document.getElementById('setupModal').classList.add('hidden');
         document.getElementById('inviteJoinModal').classList.add('hidden');
-        document.getElementById('onlineLobbyModal').classList.remove('hidden');
       });
 
       conn.on('data', (data) => {
@@ -1098,16 +1144,61 @@ class HidamesOnlineEngine {
     });
   }
 
+  // Host handles joins and reconnections
   handleHostReceivedData(conn, data) {
     if (data.type === 'JOIN_REQUEST') {
-      if (this.lobbyPlayers.length >= onlineCapacity) {
-        conn.send({ type: 'ROOM_FULL', message: 'Room is already full!' });
+      // 1. Check if this is an existing / reconnecting player by session ID or name!
+      let existingPlayer = this.lobbyPlayers.find(p => p.sessionId === data.sessionId || p.name === data.name);
+
+      if (existingPlayer) {
+        // PLAYER RECONNECTED!
+        conn._playerColor = existingPlayer.color;
+        this.connections = this.connections.filter(c => c._playerColor !== existingPlayer.color);
+        this.connections.push(conn);
+        existingPlayer.status = 'ready';
+
+        if (isMatchActive) {
+          // Reconnect to ongoing match immediately
+          conn.send({
+            type: 'RECONNECT_MATCH_SYNC',
+            color: existingPlayer.color,
+            players: currentConfig.players,
+            tokens: tokens,
+            currentTurnIdx: currentTurnIdx,
+            activePlayers: activePlayers,
+            roomCode: this.roomCode
+          });
+          showToast(`🟢 ${existingPlayer.name} RECONNECTED!`);
+        } else {
+          // Reconnect in lobby
+          conn.send({
+            type: 'JOIN_CONFIRMED',
+            color: existingPlayer.color,
+            players: this.lobbyPlayers,
+            capacity: onlineCapacity,
+            roomCode: this.roomCode
+          });
+          this.broadcastLobbyUpdate();
+          this.updateLobbyUI();
+        }
+        return;
+      }
+
+      // 2. If new player, verify capacity
+      if (this.lobbyPlayers.length >= onlineCapacity || isMatchActive) {
+        conn.send({ type: 'ROOM_FULL', message: 'Room is already full or match has started!' });
         conn.close();
         return;
       }
 
-      const colorOrder = ['red', 'green', 'yellow', 'blue'];
-      const assignedColor = colorOrder[this.lobbyPlayers.length];
+      // 3. Assign color: In 2-player mode, assign Criss-Cross opposite!
+      let assignedColor;
+      if (onlineCapacity === 2) {
+        assignedColor = CRISS_CROSS_PAIRS[myOnlineColor];
+      } else {
+        const available = ALL_COLORS.filter(c => !this.lobbyPlayers.some(p => p.color === c));
+        assignedColor = available[0] || 'green';
+      }
 
       const newPlayer = {
         id: this.lobbyPlayers.length + 1,
@@ -1115,7 +1206,8 @@ class HidamesOnlineEngine {
         color: assignedColor,
         isHost: false,
         status: 'ready',
-        peerId: conn.peer
+        peerId: conn.peer,
+        sessionId: data.sessionId
       };
 
       conn._playerColor = assignedColor;
@@ -1144,7 +1236,16 @@ class HidamesOnlineEngine {
   }
 
   handleGuestDisconnected(conn) {
-    this.lobbyPlayers = this.lobbyPlayers.filter(p => p.color !== conn._playerColor);
+    const disconnectedPlayer = this.lobbyPlayers.find(p => p.color === conn._playerColor);
+    if (disconnectedPlayer) {
+      disconnectedPlayer.status = 'disconnected';
+      if (!isMatchActive) {
+        // If still in lobby, remove
+        this.lobbyPlayers = this.lobbyPlayers.filter(p => p.color !== conn._playerColor);
+      } else {
+        showToast(`⚠️ ${disconnectedPlayer.name} disconnected (can reconnect anytime)`);
+      }
+    }
     this.connections = this.connections.filter(c => c !== conn);
     this.broadcastLobbyUpdate();
     this.updateLobbyUI();
@@ -1156,6 +1257,7 @@ class HidamesOnlineEngine {
       this.lobbyPlayers = data.players;
       onlineCapacity = data.capacity;
       this.roomCode = data.roomCode;
+      document.getElementById('onlineLobbyModal').classList.remove('hidden');
       this.updateLobbyUI();
       sounds.unlock();
     } else if (data.type === 'LOBBY_UPDATE') {
@@ -1178,6 +1280,28 @@ class HidamesOnlineEngine {
       }));
 
       initMatch();
+    } else if (data.type === 'RECONNECT_MATCH_SYNC') {
+      // Reconnected directly to active live match!
+      myOnlineColor = data.color;
+      this.roomCode = data.roomCode;
+      document.getElementById('onlineLobbyModal').classList.add('hidden');
+      document.getElementById('setupModal').classList.add('hidden');
+      document.getElementById('onlineRoomPill').classList.remove('hidden');
+      document.getElementById('activeRoomCodeDisplay').textContent = this.roomCode;
+
+      currentConfig.mode = 'online';
+      currentConfig.format = `${data.players.length}`;
+      currentConfig.players = data.players;
+      tokens = data.tokens;
+      activePlayers = data.activePlayers;
+      currentTurnIdx = data.currentTurnIdx;
+      isMatchActive = true;
+
+      buildBoard();
+      renderAllTokens();
+      startTurn(activePlayers[currentTurnIdx]);
+      showToast('🟢 RECONNECTED TO MATCH!');
+      sounds.unlock();
     } else if (data.type === 'DICE_ROLLED') {
       rollDice(data.val);
     } else if (data.type === 'TOKEN_MOVED_SYNC') {
@@ -1220,7 +1344,9 @@ class HidamesOnlineEngine {
             </div>
           </div>
           <div class="slot-right">
-            <span class="slot-status-pill ready">Ready</span>
+            <span class="slot-status-pill ${player.status === 'ready' ? 'ready' : 'waiting'}">
+              ${player.status === 'ready' ? 'Ready' : 'Disconnected'}
+            </span>
             ${(this.isHost && !player.isHost) ? `<button class="slot-kick-btn" onclick="onlineEngine.kickPlayer('${player.color}')" title="Kick Player">✕</button>` : ''}
           </div>
         `;
@@ -1317,6 +1443,7 @@ class HidamesOnlineEngine {
   }
 
   leaveRoom() {
+    isMatchActive = false;
     if (this.peer) this.peer.destroy();
     location.reload();
   }
@@ -1368,7 +1495,7 @@ class HidamesOnlineEngine {
 
 const onlineEngine = new HidamesOnlineEngine();
 
-// --- 12. Startup & Click Listeners ---
+// --- 10. Startup & Click Listeners ---
 document.addEventListener('DOMContentLoaded', () => {
   renderRosterGrid();
 

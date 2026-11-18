@@ -223,7 +223,7 @@
         <div class="form-section">
           <label class="form-label">Match Format:</label>
           <div class="format-chips" id="formatChips">
-            <button class="chip-btn active" data-format="2" onclick="setMatchFormat('2')">2 Players</button>
+            <button class="chip-btn active" data-format="2" onclick="setMatchFormat('2')">2 Players (Criss-Cross)</button>
             <button class="chip-btn" data-format="3" onclick="setMatchFormat('3')">3 Players</button>
             <button class="chip-btn" data-format="4" onclick="setMatchFormat('4')">4 Players</button>
             <button class="chip-btn" data-format="2v2" onclick="setMatchFormat('2v2')">2v2 Teams</button>
@@ -272,7 +272,7 @@
             <div class="online-card">
               <div class="online-card-icon">👑</div>
               <h3>Create Private Room</h3>
-              <p>Choose player count and invite friends with code or link.</p>
+              <p>Choose your color & player count. Re-entering code always reconnects!</p>
               
               <div class="online-capacity-selector">
                 <label>Players:</label>
@@ -283,6 +283,17 @@
                 </div>
               </div>
 
+              <!-- Host Preferred Color Selection -->
+              <div class="online-color-select-row">
+                <label>Your Color:</label>
+                <div class="roster-color-picker">
+                  <div class="color-dot-opt selected" id="host-color-red" style="background: var(--red)" onclick="selectHostOnlineColor('red')"></div>
+                  <div class="color-dot-opt" id="host-color-green" style="background: var(--green)" onclick="selectHostOnlineColor('green')"></div>
+                  <div class="color-dot-opt" id="host-color-yellow" style="background: var(--yellow)" onclick="selectHostOnlineColor('yellow')"></div>
+                  <div class="color-dot-opt" id="host-color-blue" style="background: var(--blue)" onclick="selectHostOnlineColor('blue')"></div>
+                </div>
+              </div>
+
               <button class="action-btn-gold w-full mt-2" onclick="onlineEngine.createRoom()">Create Room</button>
             </div>
 
@@ -290,7 +301,7 @@
             <div class="online-card">
               <div class="online-card-icon">🔑</div>
               <h3>Join with Room Code</h3>
-              <p>Enter the 6-character room code shared by your friend.</p>
+              <p>Enter the 6-character room code to join or resume an ongoing game.</p>
               
               <div class="join-code-row">
                 <input type="text" id="joinRoomCodeInput" class="room-code-input" placeholder="e.g. HD82K9" maxlength="6">
@@ -301,7 +312,7 @@
           </div>
 
           <div class="online-badge-footer">
-            <p><strong>⚡ Hidames Engine:</strong> Play with friends anywhere by sharing your room code!</p>
+            <p><strong>⚡ Hidames Engine:</strong> Automatic reconnection supported. Leaving and re-entering the code will return you directly to your game.</p>
           </div>
         </div>
       </div>

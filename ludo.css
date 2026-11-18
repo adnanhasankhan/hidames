@@ -2,7 +2,8 @@
    HIDAMES LUDO KING EDITION - COMPLETE STYLESHEET
    Branding: Obsidian (#0c0c0e), Panels (#17171b), Metallic Gold (#d5ad65)
    Features: 15x15 Ludo King Board, Fixed-Size Pawns, Centered Gold Logo,
-             Multiplayer Waiting Room Lobby, Footer Developer Credits
+             Multiplayer Waiting Room Lobby, Footer Developer Credits,
+             Mobile Pull-to-Refresh Guard (overscroll-behavior-y: contain)
    ========================================================================== */
 
 :root {
@@ -43,6 +44,12 @@
   user-select: none;
   -webkit-user-select: none;
   -webkit-tap-highlight-color: transparent;
+}
+
+/* Guard Against Accidental Pull-to-Refresh on Mobile */
+html, body {
+  overscroll-behavior-y: contain;
+  overscroll-behavior-x: none;
 }
 
 body {
@@ -767,7 +774,7 @@ body {
   gap: 6px;
   font-size: 11px;
   color: #ccc;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 .capacity-pills {
   display: flex;
@@ -788,6 +795,15 @@ body {
   background: var(--gold);
   color: #111;
   border-color: var(--gold);
+}
+
+.online-color-select-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #ccc;
+  margin-bottom: 8px;
 }
 
 .room-code-input {
