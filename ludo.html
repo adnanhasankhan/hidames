@@ -3,10 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="description" content="HIDAMES Ludo King Edition - Premium browser-based Ludo game with multi-player, teams, AI, and online modes.">
-  <title>Hidames Ludo | HIDAMES</title>
+  <meta name="description" content="HIDAMES Ludo King Edition - Premium browser-based Ludo game with multi-player, teams, AI, and live online rooms.">
+  <title>Ludo King | HIDAMES</title>
   
-  <!-- Supabase JS Client for Realtime Online Multiplayer -->
+  <!-- PeerJS for Instant Serverless WebRTC Online Multiplayer -->
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  
+  <!-- Supabase JS Client (Optional secondary backend) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   
   <!-- Stylesheet -->
@@ -28,7 +31,7 @@
 
     <div class="header-center">
       <div class="logo">HID<span>AMES</span></div>
-      <div class="game-tag">Hidames Ludo EDITION</div>
+      <div class="game-tag">LUDO KING EDITION</div>
     </div>
 
     <div class="header-right">
@@ -40,7 +43,7 @@
 
   <!-- Live Match Status Banner -->
   <div class="match-info-bar">
-    <div class="mode-badge" id="matchModeBadge">4 PLAYERS • CLASSIC</div>
+    <div class="mode-badge" id="matchModeBadge">4 PLAYERS • SAME DEVICE</div>
     <div class="turn-announcement" id="turnAnnouncement">ROLL TO START</div>
     <div class="room-pill hidden" id="onlineRoomPill">
       <span class="room-label">ROOM:</span>
@@ -164,14 +167,14 @@
   </main>
 
   <!-- =========================================================================
-       MODAL 1: GAME SETUP & LOBBY (CUSTOM PLAYERS, COLORS, TEAMS, MODES)
+       MODAL 1: GAME SETUP & LOBBY (PROPER TAB ISOLATION)
        ========================================================================= -->
   <div class="modal-overlay" id="setupModal">
     <div class="modal-card setup-card">
       <div class="modal-brand">
         <div class="logo">HID<span>AMES</span></div>
         <h2>LUDO LOBBY</h2>
-        <p>Select game mode, choose players,Customize names & start playing</p>
+        <p>Select game mode, choose players, and roll your dice!</p>
       </div>
 
       <!-- Mode Selector Tabs -->
@@ -181,64 +184,179 @@
         <button class="tab-btn" data-tab="online" onclick="switchSetupTab('online')">Online Rooms</button>
       </div>
 
-      <!-- Format & Teams Selector -->
-      <div class="form-section">
-        <label class="form-label">Match Format:</label>
-        <div class="format-chips" id="formatChips">
-          <button class="chip-btn active" data-format="2" onclick="setMatchFormat('2')">2 Players</button>
-          <button class="chip-btn" data-format="3" onclick="setMatchFormat('3')">3 Players</button>
-          <button class="chip-btn" data-format="4" onclick="setMatchFormat('4')">4 Players</button>
-          <button class="chip-btn" data-format="2v2" onclick="setMatchFormat('2v2')">2v2 Teams</button>
-          <button class="chip-btn" data-format="1v2" onclick="setMatchFormat('1v2')">1v2 Team</button>
-          <button class="chip-btn" data-format="1v3" onclick="setMatchFormat('1v3')">1v3 Team</button>
-        </div>
-      </div>
-
-      <!-- Player Customization Roster -->
-      <div class="form-section">
-        <label class="form-label">Player Roster & Color Selection:</label>
-        <div class="roster-grid" id="rosterGrid">
-          <!-- Dynamically populated roster slots for Player 1, 2, 3, 4 -->
-        </div>
-      </div>
-
-      <!-- Rules & Settings -->
-      <div class="form-section rules-config">
-        <label class="checkbox-option">
-          <input type="checkbox" id="blockadeToggle" checked>
-          <span>Enable Blockade Rule (2 pawns on same tile block path)</span>
-        </label>
-        <label class="checkbox-option">
-          <input type="checkbox" id="openingRoundToggle" checked>
-          <span>Opening Dice Round (Highest roll starts first)</span>
-        </label>
-      </div>
-
-      <!-- Online Room Section (Only visible under Online Tab) -->
-      <div class="form-section online-setup hidden" id="onlineSection">
-        <div class="online-panel">
-          <div class="online-inputs">
-            <input type="text" id="joinRoomCodeInput" placeholder="Enter 6-digit Room Code" maxlength="6">
-            <button class="action-btn-small" onclick="joinOnlineRoom()">Join Room</button>
-          </div>
-          <div class="divider-text">OR</div>
-          <button class="action-btn-gold w-full" onclick="createOnlineRoom()">Create Private Room</button>
-          
-          <div class="supabase-notice" id="supabaseNotice">
-            <p><strong>⚡ Hidames Engine:</strong> Play with friends anywhere by sharing your room code!</p>
+      <!-- WRAPPER A: LOCAL & AI SETTINGS (HIDDEN WHEN IN ONLINE MODE) -->
+      <div id="localSettingsWrapper">
+        <!-- Format & Teams Selector -->
+        <div class="form-section">
+          <label class="form-label">Match Format:</label>
+          <div class="format-chips" id="formatChips">
+            <button class="chip-btn active" data-format="2" onclick="setMatchFormat('2')">2 Players</button>
+            <button class="chip-btn" data-format="3" onclick="setMatchFormat('3')">3 Players</button>
+            <button class="chip-btn" data-format="4" onclick="setMatchFormat('4')">4 Players</button>
+            <button class="chip-btn" data-format="2v2" onclick="setMatchFormat('2v2')">2v2 Teams</button>
+            <button class="chip-btn" data-format="1v2" onclick="setMatchFormat('1v2')">1v2 Team</button>
+            <button class="chip-btn" data-format="1v3" onclick="setMatchFormat('1v3')">1v3 Team</button>
           </div>
         </div>
+
+        <!-- Player Customization Roster -->
+        <div class="form-section">
+          <label class="form-label" id="rosterTitleLabel">Player Roster & Color Selection:</label>
+          <div class="roster-grid" id="rosterGrid">
+            <!-- Dynamically populated roster slots for Player 1, 2, 3, 4 -->
+          </div>
+        </div>
+
+        <!-- Rules & Settings -->
+        <div class="form-section rules-config">
+          <label class="checkbox-option">
+            <input type="checkbox" id="blockadeToggle" checked>
+            <span>Enable Blockade Rule (2 pawns on same tile block path)</span>
+          </label>
+          <label class="checkbox-option">
+            <input type="checkbox" id="openingRoundToggle" checked>
+            <span>Opening Dice Round (Highest roll starts first)</span>
+          </label>
+        </div>
+
+        <!-- Start Button for Local & AI -->
+        <div class="modal-footer">
+          <button class="action-btn-gold w-full" id="startMatchBtn" onclick="confirmMatchSetup()">START MATCH</button>
+        </div>
       </div>
 
-      <!-- Modal Footer Action -->
-      <div class="modal-footer" id="localSetupFooter">
-        <button class="action-btn-gold w-full" id="startMatchBtn" onclick="confirmMatchSetup()">START MATCH</button>
+      <!-- WRAPPER B: ONLINE MULTIPLAYER ROOMS (ONLY VISIBLE UNDER ONLINE TAB) -->
+      <div id="onlineSection" class="hidden">
+        <div class="online-setup-box">
+          <div class="form-section">
+            <label class="form-label">Your Nickname:</label>
+            <input type="text" class="online-nickname-input" id="onlineNicknameInput" placeholder="Enter your player name" maxlength="15">
+          </div>
+
+          <!-- Mode Cards: Create Room vs Join Room -->
+          <div class="online-choice-grid">
+            <!-- CARD 1: HOST CREATES ROOM -->
+            <div class="online-card">
+              <div class="online-card-icon">👑</div>
+              <h3>Create Private Room</h3>
+              <p>Choose number of players and invite friends with a code or link.</p>
+              
+              <div class="online-capacity-selector">
+                <label>Players:</label>
+                <div class="capacity-pills">
+                  <button class="cap-btn active" data-cap="2" onclick="setOnlineCapacity(2)">2</button>
+                  <button class="cap-btn" data-cap="3" onclick="setOnlineCapacity(3)">3</button>
+                  <button class="cap-btn" data-cap="4" onclick="setOnlineCapacity(4)">4</button>
+                </div>
+              </div>
+
+              <button class="action-btn-gold w-full mt-2" onclick="onlineEngine.createRoom()">Create Room</button>
+            </div>
+
+            <!-- CARD 2: FRIEND JOINS WITH CODE -->
+            <div class="online-card">
+              <div class="online-card-icon">🔑</div>
+              <h3>Join with Room Code</h3>
+              <p>Enter the 6-character room code shared by your friend.</p>
+              
+              <div class="join-code-row">
+                <input type="text" id="joinRoomCodeInput" class="room-code-input" placeholder="e.g. HD82K9" maxlength="6" uppercase>
+              </div>
+
+              <button class="action-btn-secondary w-full mt-2" onclick="onlineEngine.joinWithCode()">Join Room</button>
+            </div>
+          </div>
+
+          <div class="online-badge-footer">
+            <p><strong>⚡ Hidames Engine:</strong> Realtime private multiplayer with zero lag and instant room sharing.</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       MODAL 2: MULTIPLAYER WAITING LOBBY (ROOM WAITING SCREEN)
+       ========================================================================= -->
+  <div class="modal-overlay hidden" id="onlineLobbyModal">
+    <div class="modal-card lobby-card">
+      <div class="lobby-header">
+        <div class="lobby-title">
+          <span class="live-dot"></span>
+          <h2>MULTIPLAYER LOBBY</h2>
+        </div>
+        <p>Share your room code with friends to join the match</p>
+      </div>
+
+      <!-- Large Room Code Display & Sharing Bar -->
+      <div class="room-invite-box">
+        <div class="room-code-display">
+          <span class="code-sub">ROOM CODE:</span>
+          <span class="code-val" id="lobbyRoomCodeVal">------</span>
+        </div>
+
+        <div class="invite-actions-row">
+          <button class="invite-btn" onclick="onlineEngine.copyRoomCode()" title="Copy Room Code">
+            <span>📋 Copy Code</span>
+          </button>
+          <button class="invite-btn" onclick="onlineEngine.copyInviteLink()" title="Copy Link">
+            <span>🔗 Copy Link</span>
+          </button>
+          <button class="invite-btn whatsapp-btn" onclick="onlineEngine.shareWhatsApp()" title="Share on WhatsApp">
+            <span>💬 WhatsApp</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Joined Players Roster Slots -->
+      <div class="lobby-roster">
+        <div class="lobby-roster-header">
+          <span>Joined Players (<span id="lobbyCountDisplay">1/4</span>)</span>
+          <span class="lobby-status-text" id="lobbyStatusHint">Waiting for players to join...</span>
+        </div>
+        <div class="lobby-slots-grid" id="lobbySlotsGrid">
+          <!-- Dynamically populated slots -->
+        </div>
+      </div>
+
+      <!-- Host vs Guest Controls -->
+      <div class="lobby-footer">
+        <button class="action-btn-subtle" onclick="onlineEngine.leaveRoom()">Leave Room</button>
+        <button class="action-btn-gold" id="lobbyStartGameBtn" onclick="onlineEngine.hostStartGame()">START GAME</button>
       </div>
     </div>
   </div>
 
   <!-- =========================================================================
-       MODAL 2: OPENING DICE ROUND (DETERMINE STARTING PLAYER)
+       MODAL 3: JOIN VIA INVITATION LINK DIALOG
+       ========================================================================= -->
+  <div class="modal-overlay hidden" id="inviteJoinModal">
+    <div class="modal-card invite-card">
+      <div class="modal-brand">
+        <div class="logo">HID<span>AMES</span></div>
+        <h2>JOIN LUDO ROOM</h2>
+        <p>You have been invited to play!</p>
+      </div>
+
+      <div class="detected-room-badge">
+        <span>ROOM CODE:</span>
+        <strong id="inviteDetectedCode">------</strong>
+      </div>
+
+      <div class="form-section mt-4">
+        <label class="form-label">Enter your player name:</label>
+        <input type="text" class="online-nickname-input" id="inviteNameInput" placeholder="Your Nickname" maxlength="15">
+      </div>
+
+      <div class="modal-footer mt-4">
+        <button class="action-btn-gold w-full" onclick="onlineEngine.confirmInviteJoin()">JOIN MATCH</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       MODAL 4: OPENING DICE ROUND (DETERMINE STARTING PLAYER)
        ========================================================================= -->
   <div class="modal-overlay hidden" id="openingRollModal">
     <div class="modal-card roll-card">
@@ -256,13 +374,13 @@
   </div>
 
   <!-- =========================================================================
-       MODAL 3: GAME RULES & GUIDE
+       MODAL 5: GAME RULES & GUIDE
        ========================================================================= -->
   <div class="modal-overlay hidden" id="rulesModal">
     <div class="modal-card rules-card">
       <div class="modal-brand">
         <h2>HIDAMES LUDO RULES</h2>
-        <p>Official Hidames Ludo Standards</p>
+        <p>Official Ludo King Tournament Standards</p>
       </div>
 
       <div class="rules-scrollable">
@@ -301,14 +419,14 @@
   </div>
 
   <!-- =========================================================================
-       MODAL 4: WINNER VICTORY CELEBRATION
+       MODAL 6: WINNER VICTORY CELEBRATION
        ========================================================================= -->
   <div class="modal-overlay hidden" id="winnerModal">
     <div class="modal-card victory-card">
       <div class="trophy-bounce">🏆</div>
       <h2 id="winnerText">CHAMPION!</h2>
       <div class="winner-badge" id="winnerBadge"></div>
-      <p id="winnerSub">Congratulations on dominating the Hidames Ludo board!</p>
+      <p id="winnerSub">Congratulations on dominating the Hidames board!</p>
       
       <div class="victory-actions">
         <button class="action-btn-gold" onclick="restartWithSameSettings()">PLAY AGAIN</button>

@@ -1,16 +1,15 @@
 /* ==========================================================================
-   HIDAMES LUDO KING EDITION - COMPLETE GAME ENGINE & REALTIME ENGINE
-   Fully Implements Specifications 1 through 20:
-   - Fixed-size pawns cleanly nested in DOM cells
-   - Opening Dice Round (highest roll starts)
-   - Three Consecutive Sixes Turn Rollback
-   - Blockades (opponents cannot pass or land)
-   - Exact Finish Rule & Home Runway Navigation
-   - Safe Stars (8 safe spots) & Opponent Captures with Bonus Roll
-   - Team Matches (2v2, 1v2, 1v3) & Individual (2, 3, 4 players)
-   - Smart AI with realistic delays & move evaluations
-   - Realtime Online Engine via Supabase Realtime
-   - Web Audio API Synthesizer (Zero missing audio files)
+   HIDAMES LUDO KING - COMPLETE ENGINE WITH REALTIME MULTIPLAYER
+   Full Implementation of Specifications:
+   - Tab Isolation (Same Device, Hidames AI, Online Rooms)
+   - Realtime WebRTC Multiplayer via PeerJS (Zero-Config Serverless P2P)
+   - Private Room Creation, 6-character Room Code (e.g. HD82K9) & Share Link
+   - WhatsApp Share & Copy Actions
+   - Multiplayer Waiting Room (Lobby) with Real-time Player Slots
+   - URL Query Parameter Detection (?room=HD82K9)
+   - Synchronized Dice Rolls, Token Moves & Host Game Start
+   - Turn Permissions (Players only roll their assigned color)
+   - Synthesized Web Audio API Sound Effects
    ========================================================================== */
 
 // --- 1. Synthesized Web Audio Manager ---
@@ -66,10 +65,6 @@ class SoundManager {
     this.playTone(85, 'square', 0.32, 70, 0.18);
   }
 
-  blockade() {
-    this.playTone(220, 'square', 0.15, 0, 0.12);
-  }
-
   cancelTurn() {
     this.playTone(200, 'sawtooth', 0.15, 0, 0.15);
     this.playTone(150, 'sawtooth', 0.25, 120, 0.15);
@@ -84,8 +79,7 @@ class SoundManager {
 
 const sounds = new SoundManager();
 
-// --- 2. Track & Coordinates Mapping (15x15 CSS Grid) ---
-// 52 Common Outer Tiles in Clockwise Order
+// --- 2. Track & Coordinate Mathematics (15x15 CSS Grid) ---
 const TRACK_COORDINATES = [
   /* Red Arm: 0 to 4 */
   {r: 6, c: 1}, {r: 6, c: 2}, {r: 6, c: 3}, {r: 6, c: 4}, {r: 6, c: 5},
@@ -113,13 +107,9 @@ const TRACK_COORDINATES = [
   {r: 7, c: 0}, {r: 6, c: 0}
 ];
 
-// 8 Safe Spots on Track (Indestructible Tiles)
 const SAFE_INDICES = [0, 8, 13, 21, 26, 34, 39, 47];
-
-// Player Starting Indices on Outer Track
 const START_INDEX = { red: 0, green: 13, yellow: 26, blue: 39 };
 
-// Colored Home Runways (5 tiles each leading to Center)
 const HOME_RUNWAYS = {
   red:    [{r: 7, c: 1}, {r: 7, c: 2}, {r: 7, c: 3}, {r: 7, c: 4}, {r: 7, c: 5}],
   green:  [{r: 1, c: 7}, {r: 2, c: 7}, {r: 3, c: 7}, {r: 4, c: 7}, {r: 5, c: 7}],
@@ -127,7 +117,6 @@ const HOME_RUNWAYS = {
   blue:   [{r: 13, c: 7}, {r: 12, c: 7}, {r: 11, c: 7}, {r: 10, c: 7}, {r: 9, c: 7}]
 };
 
-// Base Slot Coordinates (Row & Col) for the 4 tokens resting at base
 const BASE_SLOTS = {
   red:    [{r: 1, c: 1}, {r: 1, c: 4}, {r: 4, c: 1}, {r: 4, c: 4}],
   green:  [{r: 1, c: 10}, {r: 1, c: 13}, {r: 4, c: 10}, {r: 4, c: 13}],
@@ -135,7 +124,6 @@ const BASE_SLOTS = {
   blue:   [{r: 10, c: 1}, {r: 10, c: 4}, {r: 13, c: 1}, {r: 13, c: 4}]
 };
 
-// 3x3 Pip Layouts for Dice Faces 1 through 6
 const DICE_PIPS = {
   1: [4],
   2: [0, 8],
@@ -145,9 +133,9 @@ const DICE_PIPS = {
   6: [0, 2, 3, 5, 6, 8]
 };
 
-// --- 3. Game Configuration & State ---
 const ALL_COLORS = ['red', 'green', 'yellow', 'blue'];
 
+// --- 3. Game Configuration & State ---
 let currentConfig = {
   mode: 'local', // 'local' | 'ai' | 'online'
   format: '4',   // '2' | '3' | '4' | '2v2' | '1v2' | '1v3'
@@ -162,48 +150,60 @@ let currentConfig = {
   ]
 };
 
-// Active Match Runtime
-let activePlayers = []; // subset of colors playing in clockwise order
+let activePlayers = [];
 let currentTurnIdx = 0;
 let diceVal = null;
 let hasRolled = false;
 let isMoving = false;
 let consecutiveSixes = 0;
-let turnSnapshot = null; // Snapshot for 3 consecutive sixes rollback
-let tokens = {}; // { [color]: [ { id, color, stepCount } ] }
+let turnSnapshot = null;
+let tokens = {};
 
-// --- 4. Setup Modal Logic ---
-function initSetupUI() {
-  renderRosterGrid();
-}
+// Online State
+let onlineRole = null; // 'host' | 'guest' | null
+let myOnlineColor = null; // Color assigned to this client in an online match
+let onlineCapacity = 4;
 
+// --- 4. Tab Switching with Clean UI Isolation ---
 function switchSetupTab(tab) {
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
   currentConfig.mode = tab;
 
-  const onlineSec = document.getElementById('onlineSection');
-  const footer = document.getElementById('localSetupFooter');
+  document.querySelectorAll('.tab-group .tab-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.tab === tab);
+  });
+
+  const localWrapper = document.getElementById('localSettingsWrapper');
+  const onlineSection = document.getElementById('onlineSection');
 
   if (tab === 'online') {
-    onlineSec.classList.remove('hidden');
-    footer.classList.add('hidden');
-  } else {
-    onlineSec.classList.add('hidden');
-    footer.classList.remove('hidden');
+    // Hide local settings completely
+    localWrapper.classList.add('hidden');
+    onlineSection.classList.remove('hidden');
 
-    // Auto toggle AI settings
+    // Pre-fill saved nickname
+    const savedName = localStorage.getItem('hidames_player_name') || 'Player ' + Math.floor(100 + Math.random() * 900);
+    document.getElementById('onlineNicknameInput').value = savedName;
+  } else {
+    // Show local / AI settings completely
+    onlineSection.classList.add('hidden');
+    localWrapper.classList.remove('hidden');
+
     if (tab === 'ai') {
       currentConfig.players[0].isAi = false;
+      currentConfig.players[0].name = localStorage.getItem('hidames_player_name') || 'You';
       for (let i = 1; i < currentConfig.players.length; i++) {
         currentConfig.players[i].isAi = true;
         currentConfig.players[i].name = `Hidames AI ${i}`;
       }
+      document.getElementById('rosterTitleLabel').textContent = 'Your Name & AI Bot Opponents:';
     } else {
       currentConfig.players.forEach((p, idx) => {
         p.isAi = false;
         p.name = `Player ${idx + 1}`;
       });
+      document.getElementById('rosterTitleLabel').textContent = 'Player Roster & Color Selection:';
     }
+
     renderRosterGrid();
   }
 }
@@ -220,17 +220,14 @@ function renderRosterGrid() {
 
   let count = 4;
   if (currentConfig.format === '2') count = 2;
-  else if (currentConfig.format === '3') count = 3;
-  else if (currentConfig.format === '1v2') count = 3;
+  else if (currentConfig.format === '3' || currentConfig.format === '1v2') count = 3;
 
   for (let i = 0; i < count; i++) {
     const p = currentConfig.players[i];
     let teamLabel = '';
     if (currentConfig.format === '2v2') {
       teamLabel = `<span class="team-tag">(Team ${i % 2 === 0 ? '1' : '2'})</span>`;
-    } else if (currentConfig.format === '1v2') {
-      teamLabel = `<span class="team-tag">(Team ${i === 0 ? '1' : '2'})</span>`;
-    } else if (currentConfig.format === '1v3') {
+    } else if (currentConfig.format === '1v2' || currentConfig.format === '1v3') {
       teamLabel = `<span class="team-tag">(Team ${i === 0 ? '1' : '2'})</span>`;
     }
 
@@ -257,12 +254,12 @@ function renderRosterGrid() {
 
 function updatePlayerName(idx, val) {
   currentConfig.players[idx].name = val.trim() || `Player ${idx + 1}`;
+  if (idx === 0) localStorage.setItem('hidames_player_name', currentConfig.players[0].name);
 }
 
 function selectPlayerColor(idx, newColor) {
   const otherIdx = currentConfig.players.findIndex((p, i) => i !== idx && p.color === newColor);
   if (otherIdx !== -1) {
-    // Swap colors to prevent duplicates
     const oldColor = currentConfig.players[idx].color;
     currentConfig.players[otherIdx].color = oldColor;
   }
@@ -278,16 +275,24 @@ function togglePlayerAi(idx) {
   renderRosterGrid();
 }
 
+function setOnlineCapacity(num) {
+  onlineCapacity = num;
+  document.querySelectorAll('.capacity-pills .cap-btn').forEach(btn => {
+    btn.classList.toggle('active', parseInt(btn.dataset.cap) === num);
+  });
+}
+
 function openSetupModal() {
   document.getElementById('setupModal').classList.remove('hidden');
   document.getElementById('winnerModal').classList.add('hidden');
+  document.getElementById('onlineLobbyModal').classList.add('hidden');
 }
 
 function closeRulesModal() {
   document.getElementById('rulesModal').classList.add('hidden');
 }
 
-// --- 5. Game Initialization ---
+// --- 5. Game Initialization (Local & Online) ---
 function confirmMatchSetup() {
   currentConfig.blockadesEnabled = document.getElementById('blockadeToggle').checked;
   currentConfig.openingRoundEnabled = document.getElementById('openingRoundToggle').checked;
@@ -308,7 +313,6 @@ function initMatch() {
 
   const activeRoster = currentConfig.players.slice(0, count);
 
-  // Set Team properties
   if (currentConfig.format === '2v2') {
     activeRoster[0].team = 1;
     activeRoster[1].team = 2;
@@ -318,25 +322,21 @@ function initMatch() {
     activeRoster[0].team = 1;
     for (let i = 1; i < activeRoster.length; i++) activeRoster[i].team = 2;
   } else {
-    // Individual
     activeRoster.forEach((p, idx) => p.team = idx + 1);
   }
 
-  // Active Players in standard clockwise board order: Red -> Green -> Yellow -> Blue
   const order = ['red', 'green', 'yellow', 'blue'];
   activePlayers = order.filter(c => activeRoster.some(p => p.color === c));
 
-  // Initialize Pawns (4 per active player)
   tokens = {};
   activePlayers.forEach(c => {
     tokens[c] = [0, 1, 2, 3].map(id => ({
       id,
       color: c,
-      stepCount: -1 // -1 = in base slot
+      stepCount: -1
     }));
   });
 
-  // Setup Pods & Badges
   ALL_COLORS.forEach(c => {
     const pod = document.getElementById(`pod-${c}`);
     const cfg = activeRoster.find(p => p.color === c);
@@ -351,13 +351,13 @@ function initMatch() {
     }
   });
 
-  document.getElementById('matchModeBadge').textContent = `${currentConfig.format.toUpperCase()} • ${currentConfig.mode.toUpperCase()}`;
+  const modeText = currentConfig.mode === 'online' ? 'ONLINE MULTIPLAYER' : currentConfig.mode === 'ai' ? 'VS HIDAMES AI' : 'SAME DEVICE';
+  document.getElementById('matchModeBadge').textContent = `${activePlayers.length} PLAYERS • ${modeText}`;
 
   buildBoard();
   renderAllTokens();
 
-  // Opening Dice Round or Start Directly
-  if (currentConfig.openingRoundEnabled) {
+  if (currentConfig.openingRoundEnabled && currentConfig.mode !== 'online') {
     runOpeningDiceRound();
   } else {
     currentTurnIdx = 0;
@@ -423,7 +423,6 @@ async function runOpeningDiceRound() {
       startTurn(winnerColor);
       break;
     } else {
-      // Tie-breaker round
       banner.textContent = `TIE AT ${maxVal}! RE-ROLLING FOR TIED PLAYERS...`;
       candidates = winners;
       await sleep(1000);
@@ -436,7 +435,6 @@ function buildBoard() {
   const board = document.getElementById('ludoBoard');
   board.querySelectorAll('.cell, .base-quadrant, .center-goal').forEach(e => e.remove());
 
-  // 1. Base Quadrants
   board.insertAdjacentHTML('beforeend', `
     <div class="base-quadrant base-red"><div class="base-inner-card" id="slots-red"></div></div>
     <div class="base-quadrant base-green"><div class="base-inner-card" id="slots-green"></div></div>
@@ -451,7 +449,6 @@ function buildBoard() {
     }
   });
 
-  // 2. Center Goal Triangles
   board.insertAdjacentHTML('beforeend', `
     <div class="center-goal">
       <div class="center-triangle-red"></div>
@@ -461,7 +458,6 @@ function buildBoard() {
     </div>
   `);
 
-  // 3. Grid Path Cells
   for (let r = 0; r < 15; r++) {
     for (let c = 0; c < 15; c++) {
       const inRedBase = (r < 6 && c < 6);
@@ -479,19 +475,16 @@ function buildBoard() {
       cell.style.gridRowStart = r + 1;
       cell.style.gridColumnStart = c + 1;
 
-      // Color Home Lanes
       if (r === 7 && c >= 1 && c <= 5) cell.classList.add('path-red');
       if (c === 7 && r >= 1 && r <= 5) cell.classList.add('path-green');
       if (r === 7 && c >= 9 && c <= 13) cell.classList.add('path-yellow');
       if (c === 7 && r >= 9 && r <= 13) cell.classList.add('path-blue');
 
-      // Starting color square
       if (r === 6 && c === 1) cell.classList.add('path-red');
       if (r === 1 && c === 8) cell.classList.add('path-green');
       if (r === 8 && c === 13) cell.classList.add('path-yellow');
       if (r === 13 && c === 6) cell.classList.add('path-blue');
 
-      // Safe Stars
       TRACK_COORDINATES.forEach((coord, idx) => {
         if (coord.r === r && coord.c === c && SAFE_INDICES.includes(idx)) {
           cell.classList.add('safe-star');
@@ -503,13 +496,12 @@ function buildBoard() {
   }
 }
 
-// --- 8. Turn Flow & Snapshot (Specification §7 Three Consecutive Sixes) ---
+// --- 8. Turn Flow & Snapshot (3 Consecutive Sixes) ---
 function startTurn(color) {
   hasRolled = false;
   diceVal = null;
   clearHighlights();
 
-  // Take Snapshot of token positions at start of turn for 3-sixes rollback
   turnSnapshot = JSON.parse(JSON.stringify(tokens));
 
   document.querySelectorAll('.player-pod').forEach(p => p.classList.remove('active-turn'));
@@ -518,19 +510,30 @@ function startTurn(color) {
 
   const banner = document.getElementById('turnAnnouncement');
   const playerCfg = currentConfig.players.find(p => p.color === color);
-  banner.textContent = `${playerCfg ? playerCfg.name : color.toUpperCase()}'S TURN`;
-  banner.style.color = `var(--${color})`;
+  
+  if (currentConfig.mode === 'online') {
+    if (color === myOnlineColor) {
+      banner.textContent = 'YOUR TURN - ROLL DICE!';
+      banner.style.color = 'var(--gold)';
+    } else {
+      banner.textContent = `${playerCfg ? playerCfg.name : color.toUpperCase()}'S TURN`;
+      banner.style.color = `var(--${color})`;
+    }
+  } else {
+    banner.textContent = `${playerCfg ? playerCfg.name : color.toUpperCase()}'S TURN`;
+    banner.style.color = `var(--${color})`;
+  }
 
   document.getElementById(`status-${color}`).textContent = 'ROLLING...';
 
-  // AI Auto Roll
-  if (playerCfg && playerCfg.isAi) {
+  // AI Auto-Roll
+  if (currentConfig.mode !== 'online' && playerCfg && playerCfg.isAi) {
     setTimeout(rollDice, currentConfig.fastMode ? 350 : 700);
   }
 }
 
 // Roll Dice Engine (§17)
-function rollDice() {
+function rollDice(forcedVal = null) {
   if (hasRolled || isMoving) return;
   sounds.roll();
 
@@ -545,8 +548,13 @@ function rollDice() {
 
   setTimeout(() => {
     diceFace.classList.remove('rolling');
-    diceVal = Math.floor(Math.random() * 6) + 1;
+    diceVal = forcedVal !== null ? forcedVal : Math.floor(Math.random() * 6) + 1;
     renderDicePips(diceFace, diceVal);
+
+    // If online host/active player rolled, broadcast to peers
+    if (currentConfig.mode === 'online' && forcedVal === null) {
+      onlineEngine.broadcast({ type: 'DICE_ROLLED', color, val: diceVal });
+    }
 
     handleDiceResult(color, diceVal);
   }, duration);
@@ -562,18 +570,15 @@ function renderDicePips(diceElem, val) {
   diceElem.innerHTML = grid;
 }
 
-// Evaluate Moves & 3 Consecutive Sixes
 function handleDiceResult(color, roll) {
   if (roll === 6) {
     consecutiveSixes++;
     showToast('🎲 ROLLED A 6! +1 EXTRA ROLL!');
 
-    // Specification §7: Three Consecutive Sixes Cancel Entire Turn!
     if (consecutiveSixes === 3) {
       showToast('🚫 3 CONSECUTIVE SIXES! TURN CANCELLED!');
       sounds.cancelTurn();
 
-      // Rollback token positions to snapshot
       tokens = JSON.parse(JSON.stringify(turnSnapshot));
       renderAllTokens();
       consecutiveSixes = 0;
@@ -594,16 +599,12 @@ function evaluatePlayerMoves(color, roll) {
   const movable = [];
 
   playerTokens.forEach(token => {
-    // 1. Release from Base on 6
     if (token.stepCount === -1 && roll === 6) {
-      // Check if starting square has an opponent blockade
       const startTile = START_INDEX[color];
       if (!isTileBlockedFor(color, startTile)) {
         movable.push(token);
       }
-    }
-    // 2. Advance along track / runway
-    else if (token.stepCount >= 0 && token.stepCount + roll <= 56) {
+    } else if (token.stepCount >= 0 && token.stepCount + roll <= 56) {
       if (canTokenMovePath(token, roll)) {
         movable.push(token);
       }
@@ -616,14 +617,24 @@ function evaluatePlayerMoves(color, roll) {
     return;
   }
 
-  // Auto-move single legal option if AI or only 1 move exists
+  // If in online mode and not my turn, just highlight their pawns
+  if (currentConfig.mode === 'online' && color !== myOnlineColor) {
+    movable.forEach(tok => {
+      const el = document.getElementById(`pawn-${tok.color}-${tok.id}`);
+      if (el) el.classList.add('can-move');
+    });
+    return;
+  }
+
+  // AI Auto-Move
   const playerCfg = currentConfig.players.find(p => p.color === color);
-  if (playerCfg && playerCfg.isAi) {
+  if (currentConfig.mode !== 'online' && playerCfg && playerCfg.isAi) {
     const chosen = pickAiMove(color, movable, roll);
     setTimeout(() => moveToken(chosen), currentConfig.fastMode ? 250 : 500);
     return;
   }
 
+  // Auto-move single legal move if not in base
   if (movable.length === 1 && movable[0].stepCount >= 0) {
     moveToken(movable[0]);
     return;
@@ -636,10 +647,9 @@ function evaluatePlayerMoves(color, roll) {
   });
 }
 
-// Blockade Detection (§10)
 function getActiveBlockades() {
   if (!currentConfig.blockadesEnabled) return {};
-  const blockades = {}; // { [tileIdx]: color }
+  const blockades = {};
 
   ALL_COLORS.forEach(c => {
     const tileCounts = {};
@@ -665,29 +675,22 @@ function isTileBlockedFor(color, tileIdx) {
   const blockades = getActiveBlockades();
   const blockerColor = blockades[tileIdx];
   if (!blockerColor) return false;
-
-  // Same team or same color is not blocked
   return !isTeammate(color, blockerColor);
 }
 
-// Verify full step-by-step path is free of opponent blockades
 function canTokenMovePath(token, roll) {
   if (!currentConfig.blockadesEnabled) return true;
-
   const currentStep = token.stepCount;
   for (let s = 1; s <= roll; s++) {
     const checkStep = currentStep + s;
     if (checkStep <= 50) {
       const tile = (START_INDEX[token.color] + checkStep) % 52;
-      if (isTileBlockedFor(token.color, tile)) {
-        return false; // Path or landing is blocked
-      }
+      if (isTileBlockedFor(token.color, tile)) return false;
     }
   }
   return true;
 }
 
-// Teammate Verification (§8, §12)
 function isTeammate(colorA, colorB) {
   if (colorA === colorB) return true;
   const pA = currentConfig.players.find(p => p.color === colorA);
@@ -697,23 +700,25 @@ function isTeammate(colorA, colorB) {
 }
 
 // --- 9. Step-by-Step Movement & Captures (§6, §8, §11) ---
-async function moveToken(token) {
+async function moveToken(token, isRemote = false) {
   if (isMoving) return;
   isMoving = true;
   clearHighlights();
 
+  // If local client moved in online game, broadcast to peers
+  if (currentConfig.mode === 'online' && !isRemote) {
+    onlineEngine.broadcast({ type: 'TOKEN_MOVED', color: token.color, id: token.id });
+  }
+
   const roll = diceVal;
   const hopDelay = currentConfig.fastMode ? 90 : 160;
 
-  // Case 1: Unlocking from Base on 6
   if (token.stepCount === -1) {
-    token.stepCount = 0; // Spawns onto starting square
+    token.stepCount = 0;
     sounds.unlock();
     renderAllTokens();
     await sleep(hopDelay + 50);
-  }
-  // Case 2: Step-by-Step Hop along Path
-  else {
+  } else {
     const startStep = token.stepCount;
     const targetStep = token.stepCount + roll;
 
@@ -725,7 +730,6 @@ async function moveToken(token) {
     }
   }
 
-  // Check Exact Center Finish (§11)
   let broughtHome = false;
   if (token.stepCount === 56) {
     sounds.win();
@@ -733,7 +737,6 @@ async function moveToken(token) {
     broughtHome = true;
   }
 
-  // Check Capture (Knockout) on non-safe tiles (§8)
   let capturedOpponent = false;
   if (token.stepCount >= 0 && token.stepCount <= 50) {
     const tileIdx = (START_INDEX[token.color] + token.stepCount) % 52;
@@ -745,7 +748,6 @@ async function moveToken(token) {
             if (opp.stepCount >= 0 && opp.stepCount <= 50) {
               const oppTile = (START_INDEX[opp.color] + opp.stepCount) % 52;
               if (oppTile === tileIdx) {
-                // KNOCKOUT!
                 opp.stepCount = -1;
                 sounds.capture();
                 showToast(`⚔️ ${token.color.toUpperCase()} KNOCKED OUT ${opp.color.toUpperCase()}!`);
@@ -760,7 +762,6 @@ async function moveToken(token) {
 
   renderAllTokens();
 
-  // Check Victory Condition (§12)
   if (checkVictory(token.color)) {
     isMoving = false;
     return;
@@ -768,7 +769,6 @@ async function moveToken(token) {
 
   isMoving = false;
 
-  // Extra Roll Rules (§5, §8, §11)
   if ((roll === 6 && consecutiveSixes < 3) || capturedOpponent || broughtHome) {
     hasRolled = false;
     diceVal = null;
@@ -777,7 +777,7 @@ async function moveToken(token) {
     activePod.classList.add('active-turn');
 
     const playerCfg = currentConfig.players.find(p => p.color === token.color);
-    if (playerCfg && playerCfg.isAi) {
+    if (currentConfig.mode !== 'online' && playerCfg && playerCfg.isAi) {
       setTimeout(rollDice, currentConfig.fastMode ? 350 : 700);
     }
   } else {
@@ -785,12 +785,10 @@ async function moveToken(token) {
   }
 }
 
-// Victory Check (§12)
 function checkVictory(activeColor) {
   const activeCfg = currentConfig.players.find(p => p.color === activeColor);
   if (!activeCfg) return false;
 
-  // Individual vs Team Win
   const teamMembers = currentConfig.players.filter(p => p.team === activeCfg.team && activePlayers.includes(p.color));
   const teamFinished = teamMembers.every(m => tokens[m.color].every(t => t.stepCount === 56));
 
@@ -823,13 +821,10 @@ function nextTurn() {
   startTurn(activePlayers[currentTurnIdx]);
 }
 
-// --- 10. AI Move Evaluator (§14) ---
 function pickAiMove(color, movable, roll) {
-  // Priority 1: Bringing a token Home (+1000)
   const finisher = movable.find(t => t.stepCount + roll === 56);
   if (finisher) return finisher;
 
-  // Priority 2: Capturing an opponent (+800)
   for (const t of movable) {
     if (t.stepCount >= 0) {
       const targetStep = t.stepCount + roll;
@@ -847,11 +842,9 @@ function pickAiMove(color, movable, roll) {
     }
   }
 
-  // Priority 3: Releasing a token from base on 6 (+400)
   const basePawn = movable.find(t => t.stepCount === -1);
   if (basePawn && Math.random() < 0.75) return basePawn;
 
-  // Priority 4: Landing on a safe star (+300)
   for (const t of movable) {
     if (t.stepCount >= 0) {
       const targetStep = t.stepCount + roll;
@@ -861,16 +854,13 @@ function pickAiMove(color, movable, roll) {
     }
   }
 
-  // Priority 5: Advance the token furthest ahead
   movable.sort((a, b) => b.stepCount - a.stepCount);
   return movable[0];
 }
 
-// --- 11. Clean Token DOM Nesting (Fixes Oversized Tokens Bug) ---
+// --- 10. Clean Token DOM Nesting (Fixed Pawn Sizing) ---
 function renderAllTokens() {
   document.querySelectorAll('.pawn').forEach(p => p.remove());
-
-  // Clear previous blockade classes from cells
   document.querySelectorAll('.cell.has-blockade').forEach(c => c.classList.remove('has-blockade'));
 
   const cellOccupants = {};
@@ -880,20 +870,16 @@ function renderAllTokens() {
       let targetEl = null;
 
       if (tok.stepCount === -1) {
-        // At Base: Nest cleanly inside dashed base slot
         targetEl = document.getElementById(`slot-${tok.color}-${tok.id}`);
       } else if (tok.stepCount <= 50) {
-        // On Outer Track: Find corresponding 15x15 cell
         const trackIdx = (START_INDEX[tok.color] + tok.stepCount) % 52;
         const coord = TRACK_COORDINATES[trackIdx];
         targetEl = document.querySelector(`.cell[data-r="${coord.r}"][data-c="${coord.c}"]`);
       } else if (tok.stepCount < 56) {
-        // On Home Runway: Find colored runway cell
         const runwayIdx = tok.stepCount - 51;
         const coord = HOME_RUNWAYS[tok.color][runwayIdx];
         targetEl = document.querySelector(`.cell[data-r="${coord.r}"][data-c="${coord.c}"]`);
       } else {
-        // Finished: Center trophy goal
         targetEl = document.querySelector('.center-goal');
       }
 
@@ -905,7 +891,6 @@ function renderAllTokens() {
     });
   });
 
-  // Check and apply Blockade markers
   const blockades = getActiveBlockades();
   Object.keys(blockades).forEach(tileIdx => {
     const coord = TRACK_COORDINATES[tileIdx];
@@ -913,7 +898,6 @@ function renderAllTokens() {
     if (cell) cell.classList.add('has-blockade');
   });
 
-  // Append Pawns inside target elements
   Object.values(cellOccupants).forEach(group => {
     const isMulti = group.items.length > 1;
     group.items.forEach((tok, idx) => {
@@ -928,6 +912,7 @@ function renderAllTokens() {
       pawn.onclick = (e) => {
         e.stopPropagation();
         if (pawn.classList.contains('can-move') && !isMoving) {
+          if (currentConfig.mode === 'online' && tok.color !== myOnlineColor) return;
           moveToken(tok);
         }
       };
@@ -952,66 +937,439 @@ function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-// --- 12. Online Engine via Supabase Realtime (§16) ---
-let supabaseClient = null;
-let activeOnlineRoom = null;
-let onlineChannel = null;
+// ==========================================================================
+// --- 11. HIDAMES ONLINE ENGINE (REALTIME WEBRTC MULTIPLAYER VIA PEERJS) ---
+// ==========================================================================
 
-function initSupabase() {
-  // Optional configuration keys. If user provides their own, it will connect immediately.
-  const SUPABASE_URL = window.HIDAMES_SUPABASE_URL || 'https://xyzcompany.supabase.co';
-  const SUPABASE_ANON_KEY = window.HIDAMES_SUPABASE_ANON_KEY || 'public-anon-key';
+class HidamesOnlineEngine {
+  constructor() {
+    this.peer = null;
+    this.connections = []; // Host keeps list of client DataConnections
+    this.hostConnection = null; // Guest connection to Host
+    this.roomCode = null;
+    this.isHost = false;
+    this.lobbyPlayers = [];
+  }
 
-  if (window.supabase && SUPABASE_URL !== 'https://xyzcompany.supabase.co') {
-    try {
-      supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    } catch (e) {
-      console.warn('Supabase initialization error:', e);
+  generateRoomCode() {
+    // 6-character clean room code e.g. HD82K9
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let code = 'HD';
+    for (let i = 0; i < 4; i++) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return code;
+  }
+
+  getInviteUrl(code) {
+    const base = window.location.origin + window.location.pathname;
+    return `${base}?room=${code}`;
+  }
+
+  // --- Host Creates Private Room ---
+  createRoom() {
+    const nameInput = document.getElementById('onlineNicknameInput');
+    const myName = (nameInput.value.trim()) || 'Host';
+    localStorage.setItem('hidames_player_name', myName);
+
+    this.roomCode = this.generateRoomCode();
+    this.isHost = true;
+    onlineRole = 'host';
+    myOnlineColor = 'red';
+
+    const peerId = `hidames-ludo-${this.roomCode}`;
+    this.peer = new Peer(peerId);
+
+    this.peer.on('open', (id) => {
+      console.log('Host Peer open:', id);
+      document.getElementById('setupModal').classList.add('hidden');
+      document.getElementById('onlineLobbyModal').classList.remove('hidden');
+
+      // Initialize Lobby Roster
+      this.lobbyPlayers = [
+        { id: 1, name: myName, color: 'red', isHost: true, status: 'ready' }
+      ];
+
+      this.updateLobbyUI();
+    });
+
+    this.peer.on('connection', (conn) => {
+      // Guest connecting
+      conn.on('open', () => {
+        conn.on('data', (data) => {
+          this.handleHostReceivedData(conn, data);
+        });
+      });
+
+      conn.on('close', () => {
+        this.handleGuestDisconnected(conn);
+      });
+    });
+
+    this.peer.on('error', (err) => {
+      console.error('Peer error:', err);
+      if (err.type === 'unavailable-id') {
+        alert('Room code collision. Please click Create Room again.');
+      } else {
+        alert('Connection error: ' + err.message);
+      }
+    });
+  }
+
+  // --- Friend Joins with Code ---
+  joinWithCode(customCode = null) {
+    const codeInput = document.getElementById('joinRoomCodeInput');
+    const code = (customCode || codeInput.value).trim().toUpperCase();
+
+    if (!code || code.length < 4) {
+      alert('Please enter a valid room code (e.g. HD82K9)');
+      return;
+    }
+
+    const nameInput = document.getElementById('onlineNicknameInput');
+    const myName = (nameInput.value.trim()) || 'Player ' + Math.floor(100 + Math.random() * 900);
+    localStorage.setItem('hidames_player_name', myName);
+
+    this.connectToHost(code, myName);
+  }
+
+  connectToHost(code, myName) {
+    this.roomCode = code;
+    this.isHost = false;
+    onlineRole = 'guest';
+
+    this.peer = new Peer(); // Random peer ID for guest
+
+    this.peer.on('open', (id) => {
+      const hostPeerId = `hidames-ludo-${code}`;
+      const conn = this.peer.connect(hostPeerId, { reliable: true });
+
+      conn.on('open', () => {
+        this.hostConnection = conn;
+        // Send join request to host
+        conn.send({ type: 'JOIN_REQUEST', name: myName });
+
+        document.getElementById('setupModal').classList.add('hidden');
+        document.getElementById('inviteJoinModal').classList.add('hidden');
+        document.getElementById('onlineLobbyModal').classList.remove('hidden');
+      });
+
+      conn.on('data', (data) => {
+        this.handleGuestReceivedData(data);
+      });
+
+      conn.on('error', (err) => {
+        alert('Could not connect to room ' + code + '. Please check the code.');
+      });
+
+      conn.on('close', () => {
+        showToast('🔴 Disconnected from room');
+      });
+    });
+
+    this.peer.on('error', (err) => {
+      alert('Room not found or host has closed the room.');
+    });
+  }
+
+  // --- Host Event Handling ---
+  handleHostReceivedData(conn, data) {
+    if (data.type === 'JOIN_REQUEST') {
+      if (this.lobbyPlayers.length >= onlineCapacity) {
+        conn.send({ type: 'ROOM_FULL', message: 'Room is already full!' });
+        conn.close();
+        return;
+      }
+
+      // Assign Next Available Color: Red (Host) -> Green -> Yellow -> Blue
+      const colorOrder = ['red', 'green', 'yellow', 'blue'];
+      const assignedColor = colorOrder[this.lobbyPlayers.length];
+
+      const newPlayer = {
+        id: this.lobbyPlayers.length + 1,
+        name: data.name,
+        color: assignedColor,
+        isHost: false,
+        status: 'ready',
+        peerId: conn.peer
+      };
+
+      conn._playerColor = assignedColor;
+      this.connections.push(conn);
+      this.lobbyPlayers.push(newPlayer);
+
+      // Confirm join to guest with their assigned color
+      conn.send({
+        type: 'JOIN_CONFIRMED',
+        color: assignedColor,
+        players: this.lobbyPlayers,
+        capacity: onlineCapacity,
+        roomCode: this.roomCode
+      });
+
+      // Broadcast updated lobby to all connected peers
+      this.broadcastLobbyUpdate();
+      this.updateLobbyUI();
+      sounds.unlock();
+    } else if (data.type === 'DICE_ROLLED') {
+      // Forward roll to all other peers & execute locally
+      this.broadcast(data, conn);
+      rollDice(data.val);
+    } else if (data.type === 'TOKEN_MOVED') {
+      // Forward token move & execute locally
+      this.broadcast(data, conn);
+      const token = tokens[data.color].find(t => t.id === data.id);
+      if (token) moveToken(token, true);
     }
   }
-}
 
-function createOnlineRoom() {
-  const roomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-  joinOnlineRoomWithCode(roomCode, true);
-}
-
-function joinOnlineRoom() {
-  const code = document.getElementById('joinRoomCodeInput').value.trim().toUpperCase();
-  if (!code || code.length < 4) {
-    alert('Please enter a valid room code');
-    return;
-  }
-  joinOnlineRoomWithCode(code, false);
-}
-
-function joinOnlineRoomWithCode(code, isHost) {
-  initSupabase();
-
-  if (!supabaseClient) {
-    // Show clear setup banner as mandated by Specification §16
-    alert(`Online Multiplayer requires Supabase Realtime credentials.\n\nRoom Code Generated: ${code}\nTo enable live synchronization across devices, connect your Supabase URL & Anon Key in ludo.js or window.HIDAMES_SUPABASE_URL.`);
+  handleGuestDisconnected(conn) {
+    this.lobbyPlayers = this.lobbyPlayers.filter(p => p.color !== conn._playerColor);
+    this.connections = this.connections.filter(c => c !== conn);
+    this.broadcastLobbyUpdate();
+    this.updateLobbyUI();
   }
 
-  activeOnlineRoom = code;
-  document.getElementById('setupModal').classList.add('hidden');
-  document.getElementById('onlineRoomPill').classList.remove('hidden');
-  document.getElementById('activeRoomCodeDisplay').textContent = code;
+  // --- Guest Event Handling ---
+  handleGuestReceivedData(data) {
+    if (data.type === 'JOIN_CONFIRMED') {
+      myOnlineColor = data.color;
+      this.lobbyPlayers = data.players;
+      onlineCapacity = data.capacity;
+      this.roomCode = data.roomCode;
+      this.updateLobbyUI();
+      sounds.unlock();
+    } else if (data.type === 'LOBBY_UPDATE') {
+      this.lobbyPlayers = data.players;
+      onlineCapacity = data.capacity;
+      this.updateLobbyUI();
+    } else if (data.type === 'START_MATCH') {
+      document.getElementById('onlineLobbyModal').classList.add('hidden');
+      document.getElementById('onlineRoomPill').classList.remove('hidden');
+      document.getElementById('activeRoomCodeDisplay').textContent = this.roomCode;
 
-  initMatch();
-  showToast(`🌐 JOINED ROOM: ${code}`);
+      currentConfig.mode = 'online';
+      currentConfig.format = `${data.players.length}`;
+      currentConfig.players = data.players.map((p, idx) => ({
+        id: idx + 1,
+        color: p.color,
+        name: p.name,
+        isAi: false,
+        team: idx + 1
+      }));
+
+      initMatch();
+    } else if (data.type === 'DICE_ROLLED') {
+      rollDice(data.val);
+    } else if (data.type === 'TOKEN_MOVED') {
+      const token = tokens[data.color].find(t => t.id === data.id);
+      if (token) moveToken(token, true);
+    } else if (data.type === 'ROOM_FULL') {
+      alert(data.message || 'Room is full!');
+      location.reload();
+    } else if (data.type === 'KICKED') {
+      alert('You have been removed from the room by the host.');
+      location.reload();
+    }
+  }
+
+  // --- Lobby UI Update ---
+  updateLobbyUI() {
+    document.getElementById('lobbyRoomCodeVal').textContent = this.roomCode;
+    document.getElementById('lobbyCountDisplay').textContent = `${this.lobbyPlayers.length}/${onlineCapacity}`;
+
+    const grid = document.getElementById('lobbySlotsGrid');
+    grid.innerHTML = '';
+
+    const colorOrder = ['red', 'green', 'yellow', 'blue'].slice(0, onlineCapacity);
+
+    colorOrder.forEach((color, idx) => {
+      const player = this.lobbyPlayers.find(p => p.color === color);
+      const slotCard = document.createElement('div');
+
+      if (player) {
+        slotCard.className = 'lobby-slot-card occupied';
+        slotCard.innerHTML = `
+          <div class="slot-left">
+            <div class="slot-avatar" style="background: var(--${color})">
+              ${player.isHost ? '👑' : '👤'}
+            </div>
+            <div class="slot-info">
+              <span class="slot-name">${player.name} ${player.color === myOnlineColor ? '(You)' : ''}</span>
+              <span class="slot-meta" style="color: var(--${color})">
+                ${color.toUpperCase()} • ${player.isHost ? '<span class="host-tag">Host</span>' : 'Player'}
+              </span>
+            </div>
+          </div>
+          <div class="slot-right">
+            <span class="slot-status-pill ready">Ready</span>
+            ${(this.isHost && !player.isHost) ? `<button class="slot-kick-btn" onclick="onlineEngine.kickPlayer('${player.color}')" title="Kick Player">✕</button>` : ''}
+          </div>
+        `;
+      } else {
+        slotCard.className = 'lobby-slot-card empty';
+        slotCard.innerHTML = `
+          <div class="slot-left">
+            <div class="slot-avatar" style="background: #222; border-color: #444;">⏳</div>
+            <div class="slot-info">
+              <span class="slot-name" style="color: #666">Empty Slot</span>
+              <span class="slot-meta" style="color: #555">${color.toUpperCase()} • Waiting for player...</span>
+            </div>
+          </div>
+          <div class="slot-right">
+            <span class="slot-status-pill waiting">Waiting</span>
+          </div>
+        `;
+      }
+      grid.appendChild(slotCard);
+    });
+
+    // Start Button only enabled for Host when at least 2 players have joined
+    const startBtn = document.getElementById('lobbyStartGameBtn');
+    const statusHint = document.getElementById('lobbyStatusHint');
+
+    if (this.isHost) {
+      startBtn.style.display = 'block';
+      if (this.lobbyPlayers.length >= 2) {
+        startBtn.disabled = false;
+        startBtn.style.opacity = '1';
+        statusHint.textContent = 'All set! You can start the match.';
+      } else {
+        startBtn.disabled = true;
+        startBtn.style.opacity = '0.5';
+        statusHint.textContent = 'Waiting for friends to join...';
+      }
+    } else {
+      startBtn.style.display = 'none';
+      statusHint.textContent = 'Waiting for Host to start the game...';
+    }
+  }
+
+  broadcastLobbyUpdate() {
+    this.broadcast({
+      type: 'LOBBY_UPDATE',
+      players: this.lobbyPlayers,
+      capacity: onlineCapacity
+    });
+  }
+
+  broadcast(message, excludeConn = null) {
+    if (this.isHost) {
+      this.connections.forEach(conn => {
+        if (conn !== excludeConn && conn.open) {
+          conn.send(message);
+        }
+      });
+    } else if (this.hostConnection && this.hostConnection.open) {
+      this.hostConnection.send(message);
+    }
+  }
+
+  hostStartGame() {
+    if (!this.isHost || this.lobbyPlayers.length < 2) return;
+
+    this.broadcast({
+      type: 'START_MATCH',
+      players: this.lobbyPlayers
+    });
+
+    document.getElementById('onlineLobbyModal').classList.add('hidden');
+    document.getElementById('onlineRoomPill').classList.remove('hidden');
+    document.getElementById('activeRoomCodeDisplay').textContent = this.roomCode;
+
+    currentConfig.mode = 'online';
+    currentConfig.format = `${this.lobbyPlayers.length}`;
+    currentConfig.players = this.lobbyPlayers.map((p, idx) => ({
+      id: idx + 1,
+      color: p.color,
+      name: p.name,
+      isAi: false,
+      team: idx + 1
+    }));
+
+    initMatch();
+  }
+
+  kickPlayer(color) {
+    const conn = this.connections.find(c => c._playerColor === color);
+    if (conn) {
+      conn.send({ type: 'KICKED' });
+      conn.close();
+      this.handleGuestDisconnected(conn);
+    }
+  }
+
+  leaveRoom() {
+    if (this.peer) this.peer.destroy();
+    location.reload();
+  }
+
+  // --- Sharing System (§2 Specification) ---
+  copyRoomCode() {
+    if (!this.roomCode) return;
+    navigator.clipboard.writeText(this.roomCode);
+    showToast(`📋 ROOM CODE ${this.roomCode} COPIED!`);
+  }
+
+  copyInviteLink() {
+    if (!this.roomCode) return;
+    const url = this.getInviteUrl(this.roomCode);
+    navigator.clipboard.writeText(url);
+    showToast('🔗 INVITATION LINK COPIED!');
+  }
+
+  shareWhatsApp() {
+    if (!this.roomCode) return;
+    const url = this.getInviteUrl(this.roomCode);
+    const msg = `Hey! Join my HIDAMES Ludo game.\n\nRoom Code: ${this.roomCode}\n\nClick the link to join:\n${url}\n\nLet's play together!`;
+    const encoded = encodeURIComponent(msg);
+    window.open(`https://api.whatsapp.com/send?text=${encoded}`, '_blank');
+  }
+
+  // Check URL on load for ?room=CODE
+  checkUrlParams() {
+    const params = new URLSearchParams(window.location.search);
+    const roomParam = params.get('room');
+    if (roomParam) {
+      const code = roomParam.trim().toUpperCase();
+      document.getElementById('inviteDetectedCode').textContent = code;
+      const savedName = localStorage.getItem('hidames_player_name') || 'Guest ' + Math.floor(100 + Math.random() * 900);
+      document.getElementById('inviteNameInput').value = savedName;
+
+      // Show Join Dialog
+      document.getElementById('inviteJoinModal').classList.remove('hidden');
+      document.getElementById('setupModal').classList.add('hidden');
+    }
+  }
+
+  confirmInviteJoin() {
+    const code = document.getElementById('inviteDetectedCode').textContent;
+    const nameInput = document.getElementById('inviteNameInput');
+    const myName = (nameInput.value.trim()) || 'Guest';
+    localStorage.setItem('hidames_player_name', myName);
+
+    this.connectToHost(code, myName);
+  }
 }
 
-// --- 13. Event Listeners & Startup ---
+const onlineEngine = new HidamesOnlineEngine();
+
+// --- 12. Startup & Click Listeners ---
 document.addEventListener('DOMContentLoaded', () => {
-  initSetupUI();
+  renderRosterGrid();
 
-  // Corner Dice Roll Clicks
+  // Corner Dice Clicks with Online Turn Guard
   ALL_COLORS.forEach(c => {
     const box = document.getElementById(`dice-${c}`);
     if (box) {
       box.onclick = () => {
         if (activePlayers[currentTurnIdx] === c) {
+          // If in Online match, only allow if it is my assigned color
+          if (currentConfig.mode === 'online' && c !== myOnlineColor) {
+            showToast("Wait for your turn!");
+            return;
+          }
+
           const playerCfg = currentConfig.players.find(p => p.color === c);
           if (!playerCfg || !playerCfg.isAi) {
             rollDice();
@@ -1052,14 +1410,14 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   }
 
-  // Copy Room Link
-  const copyBtn = document.getElementById('copyRoomCodeBtn');
-  if (copyBtn) {
-    copyBtn.onclick = () => {
-      if (activeOnlineRoom) {
-        navigator.clipboard.writeText(`${window.location.origin}${window.location.pathname}?room=${activeOnlineRoom}`);
-        showToast('📋 ROOM LINK COPIED!');
-      }
+  // Copy Room Link in header banner
+  const copyHeaderBtn = document.getElementById('copyRoomCodeBtn');
+  if (copyHeaderBtn) {
+    copyHeaderBtn.onclick = () => {
+      if (onlineEngine.roomCode) onlineEngine.copyInviteLink();
     };
   }
+
+  // Check URL parameters for ?room=CODE
+  onlineEngine.checkUrlParams();
 });
