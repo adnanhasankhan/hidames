@@ -1,15 +1,13 @@
 /* ==========================================================================
-   HIDAMES LUDO KING - COMPLETE ENGINE WITH REALTIME MULTIPLAYER
-   Full Implementation of Specifications:
-   - Tab Isolation (Same Device, Hidames AI, Online Rooms)
-   - Realtime WebRTC Multiplayer via PeerJS (Zero-Config Serverless P2P)
-   - Private Room Creation, 6-character Room Code (e.g. HD82K9) & Share Link
-   - WhatsApp Share & Copy Actions
-   - Multiplayer Waiting Room (Lobby) with Real-time Player Slots
-   - URL Query Parameter Detection (?room=HD82K9)
-   - Synchronized Dice Rolls, Token Moves & Host Game Start
-   - Turn Permissions (Players only roll their assigned color)
-   - Synthesized Web Audio API Sound Effects
+   HIDAMES LUDO KING - COMPLETE ENGINE & FLAWLESS MULTIPLAYER SYNCHRONIZATION
+   Features:
+   - Complete Tab Isolation (Online Rooms vs Same Device & AI)
+   - Centered HIDAMES Gold Logo in Center Finish Goal
+   - Authoritative Realtime Synchronization for Captures & Extra Turns
+   - Zero-Freeze PeerJS WebRTC P2P Multiplayer
+   - WhatsApp Share & 6-Character Room Codes (e.g. HD82K9)
+   - Fixed-Size Pawns & 15x15 Grid Track Coordinates
+   - Web Audio API Sound Synthesis
    ========================================================================== */
 
 // --- 1. Synthesized Web Audio Manager ---
@@ -61,8 +59,8 @@ class SoundManager {
   }
 
   capture() {
-    this.playTone(140, 'sawtooth', 0.22, 0, 0.18);
-    this.playTone(85, 'square', 0.32, 70, 0.18);
+    this.playTone(140, 'sawtooth', 0.22, 0, 0.2);
+    this.playTone(85, 'square', 0.32, 70, 0.2);
   }
 
   cancelTurn() {
@@ -79,7 +77,7 @@ class SoundManager {
 
 const sounds = new SoundManager();
 
-// --- 2. Track & Coordinate Mathematics (15x15 CSS Grid) ---
+// --- 2. Track & Coordinates Mapping (15x15 Grid) ---
 const TRACK_COORDINATES = [
   /* Red Arm: 0 to 4 */
   {r: 6, c: 1}, {r: 6, c: 2}, {r: 6, c: 3}, {r: 6, c: 4}, {r: 6, c: 5},
@@ -160,11 +158,11 @@ let turnSnapshot = null;
 let tokens = {};
 
 // Online State
-let onlineRole = null; // 'host' | 'guest' | null
-let myOnlineColor = null; // Color assigned to this client in an online match
+let onlineRole = null;
+let myOnlineColor = null;
 let onlineCapacity = 4;
 
-// --- 4. Tab Switching with Clean UI Isolation ---
+// --- 4. Setup Modal Logic & Strict Tab Isolation ---
 function switchSetupTab(tab) {
   currentConfig.mode = tab;
 
@@ -176,17 +174,14 @@ function switchSetupTab(tab) {
   const onlineSection = document.getElementById('onlineSection');
 
   if (tab === 'online') {
-    // Hide local settings completely
-    localWrapper.classList.add('hidden');
-    onlineSection.classList.remove('hidden');
+    localWrapper.style.display = 'none';
+    onlineSection.style.display = 'block';
 
-    // Pre-fill saved nickname
     const savedName = localStorage.getItem('hidames_player_name') || 'Player ' + Math.floor(100 + Math.random() * 900);
     document.getElementById('onlineNicknameInput').value = savedName;
   } else {
-    // Show local / AI settings completely
-    onlineSection.classList.add('hidden');
-    localWrapper.classList.remove('hidden');
+    onlineSection.style.display = 'none';
+    localWrapper.style.display = 'block';
 
     if (tab === 'ai') {
       currentConfig.players[0].isAi = false;
@@ -286,13 +281,14 @@ function openSetupModal() {
   document.getElementById('setupModal').classList.remove('hidden');
   document.getElementById('winnerModal').classList.add('hidden');
   document.getElementById('onlineLobbyModal').classList.add('hidden');
+  switchSetupTab('local');
 }
 
 function closeRulesModal() {
   document.getElementById('rulesModal').classList.add('hidden');
 }
 
-// --- 5. Game Initialization (Local & Online) ---
+// --- 5. Game Initialization ---
 function confirmMatchSetup() {
   currentConfig.blockadesEnabled = document.getElementById('blockadeToggle').checked;
   currentConfig.openingRoundEnabled = document.getElementById('openingRoundToggle').checked;
@@ -430,11 +426,12 @@ async function runOpeningDiceRound() {
   }
 }
 
-// --- 7. Board Construction (15x15 CSS Grid) ---
+// --- 7. Board Construction (15x15 CSS Grid with Centered Logo) ---
 function buildBoard() {
   const board = document.getElementById('ludoBoard');
   board.querySelectorAll('.cell, .base-quadrant, .center-goal').forEach(e => e.remove());
 
+  // 1. Base Quadrants
   board.insertAdjacentHTML('beforeend', `
     <div class="base-quadrant base-red"><div class="base-inner-card" id="slots-red"></div></div>
     <div class="base-quadrant base-green"><div class="base-inner-card" id="slots-green"></div></div>
@@ -449,15 +446,21 @@ function buildBoard() {
     }
   });
 
+  // 2. Center Goal Triangles with Beautifully Centered HIDAMES Gold Logo
   board.insertAdjacentHTML('beforeend', `
     <div class="center-goal">
       <div class="center-triangle-red"></div>
       <div class="center-triangle-green"></div>
       <div class="center-triangle-yellow"></div>
       <div class="center-triangle-blue"></div>
+      <div class="center-trophy">
+        <div class="crown-icon">👑</div>
+        <div class="trophy-brand">HID<span>AMES</span></div>
+      </div>
     </div>
   `);
 
+  // 3. 15x15 Grid Path Cells
   for (let r = 0; r < 15; r++) {
     for (let c = 0; c < 15; c++) {
       const inRedBase = (r < 6 && c < 6);
@@ -475,16 +478,19 @@ function buildBoard() {
       cell.style.gridRowStart = r + 1;
       cell.style.gridColumnStart = c + 1;
 
+      // Color Home Runways
       if (r === 7 && c >= 1 && c <= 5) cell.classList.add('path-red');
       if (c === 7 && r >= 1 && r <= 5) cell.classList.add('path-green');
       if (r === 7 && c >= 9 && c <= 13) cell.classList.add('path-yellow');
       if (c === 7 && r >= 9 && r <= 13) cell.classList.add('path-blue');
 
+      // Starting color square
       if (r === 6 && c === 1) cell.classList.add('path-red');
       if (r === 1 && c === 8) cell.classList.add('path-green');
       if (r === 8 && c === 13) cell.classList.add('path-yellow');
       if (r === 13 && c === 6) cell.classList.add('path-blue');
 
+      // Safe Stars
       TRACK_COORDINATES.forEach((coord, idx) => {
         if (coord.r === r && coord.c === c && SAFE_INDICES.includes(idx)) {
           cell.classList.add('safe-star');
@@ -496,7 +502,7 @@ function buildBoard() {
   }
 }
 
-// --- 8. Turn Flow & Snapshot (3 Consecutive Sixes) ---
+// --- 8. Turn Flow & Snapshot ---
 function startTurn(color) {
   hasRolled = false;
   diceVal = null;
@@ -526,13 +532,12 @@ function startTurn(color) {
 
   document.getElementById(`status-${color}`).textContent = 'ROLLING...';
 
-  // AI Auto-Roll
   if (currentConfig.mode !== 'online' && playerCfg && playerCfg.isAi) {
     setTimeout(rollDice, currentConfig.fastMode ? 350 : 700);
   }
 }
 
-// Roll Dice Engine (§17)
+// Roll Dice Engine
 function rollDice(forcedVal = null) {
   if (hasRolled || isMoving) return;
   sounds.roll();
@@ -551,7 +556,6 @@ function rollDice(forcedVal = null) {
     diceVal = forcedVal !== null ? forcedVal : Math.floor(Math.random() * 6) + 1;
     renderDicePips(diceFace, diceVal);
 
-    // If online host/active player rolled, broadcast to peers
     if (currentConfig.mode === 'online' && forcedVal === null) {
       onlineEngine.broadcast({ type: 'DICE_ROLLED', color, val: diceVal });
     }
@@ -593,7 +597,6 @@ function handleDiceResult(color, roll) {
   evaluatePlayerMoves(color, roll);
 }
 
-// Move Legality & Blockade Validation (§6, §10, §11)
 function evaluatePlayerMoves(color, roll) {
   const playerTokens = tokens[color];
   const movable = [];
@@ -617,7 +620,6 @@ function evaluatePlayerMoves(color, roll) {
     return;
   }
 
-  // If in online mode and not my turn, just highlight their pawns
   if (currentConfig.mode === 'online' && color !== myOnlineColor) {
     movable.forEach(tok => {
       const el = document.getElementById(`pawn-${tok.color}-${tok.id}`);
@@ -626,7 +628,6 @@ function evaluatePlayerMoves(color, roll) {
     return;
   }
 
-  // AI Auto-Move
   const playerCfg = currentConfig.players.find(p => p.color === color);
   if (currentConfig.mode !== 'online' && playerCfg && playerCfg.isAi) {
     const chosen = pickAiMove(color, movable, roll);
@@ -634,13 +635,11 @@ function evaluatePlayerMoves(color, roll) {
     return;
   }
 
-  // Auto-move single legal move if not in base
   if (movable.length === 1 && movable[0].stepCount >= 0) {
     moveToken(movable[0]);
     return;
   }
 
-  // Highlight Movable Pawns
   movable.forEach(tok => {
     const el = document.getElementById(`pawn-${tok.color}-${tok.id}`);
     if (el) el.classList.add('can-move');
@@ -699,16 +698,11 @@ function isTeammate(colorA, colorB) {
   return pA.team === pB.team;
 }
 
-// --- 9. Step-by-Step Movement & Captures (§6, §8, §11) ---
-async function moveToken(token, isRemote = false) {
+// --- 9. Step-by-Step Movement, Full Synchronized Knockouts & Bonus Rolls ---
+async function moveToken(token, isRemote = false, remoteData = null) {
   if (isMoving) return;
   isMoving = true;
   clearHighlights();
-
-  // If local client moved in online game, broadcast to peers
-  if (currentConfig.mode === 'online' && !isRemote) {
-    onlineEngine.broadcast({ type: 'TOKEN_MOVED', color: token.color, id: token.id });
-  }
 
   const roll = diceVal;
   const hopDelay = currentConfig.fastMode ? 90 : 160;
@@ -720,7 +714,7 @@ async function moveToken(token, isRemote = false) {
     await sleep(hopDelay + 50);
   } else {
     const startStep = token.stepCount;
-    const targetStep = token.stepCount + roll;
+    const targetStep = remoteData ? remoteData.targetStep : token.stepCount + roll;
 
     for (let s = startStep + 1; s <= targetStep; s++) {
       token.stepCount = s;
@@ -737,26 +731,40 @@ async function moveToken(token, isRemote = false) {
     broughtHome = true;
   }
 
-  let capturedOpponent = false;
-  if (token.stepCount >= 0 && token.stepCount <= 50) {
-    const tileIdx = (START_INDEX[token.color] + token.stepCount) % 52;
+  // Knockout Detection
+  let capturedTokenInfo = null;
 
-    if (!SAFE_INDICES.includes(tileIdx)) {
-      activePlayers.forEach(c => {
-        if (!isTeammate(token.color, c)) {
-          tokens[c].forEach(opp => {
-            if (opp.stepCount >= 0 && opp.stepCount <= 50) {
-              const oppTile = (START_INDEX[opp.color] + opp.stepCount) % 52;
-              if (oppTile === tileIdx) {
-                opp.stepCount = -1;
-                sounds.capture();
-                showToast(`⚔️ ${token.color.toUpperCase()} KNOCKED OUT ${opp.color.toUpperCase()}!`);
-                capturedOpponent = true;
+  if (!isRemote) {
+    // Local player determined the move outcome
+    if (token.stepCount >= 0 && token.stepCount <= 50) {
+      const tileIdx = (START_INDEX[token.color] + token.stepCount) % 52;
+
+      if (!SAFE_INDICES.includes(tileIdx)) {
+        activePlayers.forEach(c => {
+          if (!isTeammate(token.color, c)) {
+            tokens[c].forEach(opp => {
+              if (opp.stepCount >= 0 && opp.stepCount <= 50) {
+                const oppTile = (START_INDEX[opp.color] + opp.stepCount) % 52;
+                if (oppTile === tileIdx) {
+                  // KNOCKOUT!
+                  opp.stepCount = -1;
+                  sounds.capture();
+                  showToast(`⚔️ ${token.color.toUpperCase()} KNOCKED OUT ${opp.color.toUpperCase()}!`);
+                  capturedTokenInfo = { color: opp.color, id: opp.id };
+                }
               }
-            }
-          });
-        }
-      });
+            });
+          }
+        });
+      }
+    }
+  } else if (remoteData && remoteData.capturedToken) {
+    // Explicit remote knockout payload received
+    const opp = tokens[remoteData.capturedToken.color].find(t => t.id === remoteData.capturedToken.id);
+    if (opp) {
+      opp.stepCount = -1;
+      sounds.capture();
+      showToast(`⚔️ ${token.color.toUpperCase()} KNOCKED OUT ${remoteData.capturedToken.color.toUpperCase()}!`);
     }
   }
 
@@ -767,9 +775,30 @@ async function moveToken(token, isRemote = false) {
     return;
   }
 
+  const earnedBonus = (roll === 6 && consecutiveSixes < 3) || !!capturedTokenInfo || broughtHome;
+  const nextPlayerIdx = (currentTurnIdx + 1) % activePlayers.length;
+  const nextTurnColor = earnedBonus ? token.color : activePlayers[nextPlayerIdx];
+
+  // Broadcast Authoritative Synchronized Outcome to Remote Peers
+  if (currentConfig.mode === 'online' && !isRemote) {
+    onlineEngine.broadcast({
+      type: 'TOKEN_MOVED_SYNC',
+      color: token.color,
+      id: token.id,
+      roll: diceVal,
+      targetStep: token.stepCount,
+      capturedToken: capturedTokenInfo,
+      bonusRoll: earnedBonus,
+      nextTurnColor: nextTurnColor
+    });
+  }
+
   isMoving = false;
 
-  if ((roll === 6 && consecutiveSixes < 3) || capturedOpponent || broughtHome) {
+  // Decide next turn locally
+  const isBonus = remoteData ? remoteData.bonusRoll : earnedBonus;
+
+  if (isBonus) {
     hasRolled = false;
     diceVal = null;
     showToast('🎉 BONUS ROLL!');
@@ -781,7 +810,12 @@ async function moveToken(token, isRemote = false) {
       setTimeout(rollDice, currentConfig.fastMode ? 350 : 700);
     }
   } else {
-    nextTurn();
+    if (remoteData) {
+      currentTurnIdx = activePlayers.indexOf(remoteData.nextTurnColor);
+      startTurn(remoteData.nextTurnColor);
+    } else {
+      nextTurn();
+    }
   }
 }
 
@@ -858,7 +892,7 @@ function pickAiMove(color, movable, roll) {
   return movable[0];
 }
 
-// --- 10. Clean Token DOM Nesting (Fixed Pawn Sizing) ---
+// --- 10. Clean Token DOM Nesting (Fixed Sizing) ---
 function renderAllTokens() {
   document.querySelectorAll('.pawn').forEach(p => p.remove());
   document.querySelectorAll('.cell.has-blockade').forEach(c => c.classList.remove('has-blockade'));
@@ -938,21 +972,20 @@ function sleep(ms) {
 }
 
 // ==========================================================================
-// --- 11. HIDAMES ONLINE ENGINE (REALTIME WEBRTC MULTIPLAYER VIA PEERJS) ---
+// --- 11. HIDAMES ONLINE ENGINE (REALTIME WEBRTC VIA PEERJS) ---
 // ==========================================================================
 
 class HidamesOnlineEngine {
   constructor() {
     this.peer = null;
-    this.connections = []; // Host keeps list of client DataConnections
-    this.hostConnection = null; // Guest connection to Host
+    this.connections = [];
+    this.hostConnection = null;
     this.roomCode = null;
     this.isHost = false;
     this.lobbyPlayers = [];
   }
 
   generateRoomCode() {
-    // 6-character clean room code e.g. HD82K9
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
     let code = 'HD';
     for (let i = 0; i < 4; i++) {
@@ -966,7 +999,6 @@ class HidamesOnlineEngine {
     return `${base}?room=${code}`;
   }
 
-  // --- Host Creates Private Room ---
   createRoom() {
     const nameInput = document.getElementById('onlineNicknameInput');
     const myName = (nameInput.value.trim()) || 'Host';
@@ -981,11 +1013,9 @@ class HidamesOnlineEngine {
     this.peer = new Peer(peerId);
 
     this.peer.on('open', (id) => {
-      console.log('Host Peer open:', id);
       document.getElementById('setupModal').classList.add('hidden');
       document.getElementById('onlineLobbyModal').classList.remove('hidden');
 
-      // Initialize Lobby Roster
       this.lobbyPlayers = [
         { id: 1, name: myName, color: 'red', isHost: true, status: 'ready' }
       ];
@@ -994,7 +1024,6 @@ class HidamesOnlineEngine {
     });
 
     this.peer.on('connection', (conn) => {
-      // Guest connecting
       conn.on('open', () => {
         conn.on('data', (data) => {
           this.handleHostReceivedData(conn, data);
@@ -1007,16 +1036,14 @@ class HidamesOnlineEngine {
     });
 
     this.peer.on('error', (err) => {
-      console.error('Peer error:', err);
       if (err.type === 'unavailable-id') {
         alert('Room code collision. Please click Create Room again.');
       } else {
-        alert('Connection error: ' + err.message);
+        alert('Connection notice: ' + err.message);
       }
     });
   }
 
-  // --- Friend Joins with Code ---
   joinWithCode(customCode = null) {
     const codeInput = document.getElementById('joinRoomCodeInput');
     const code = (customCode || codeInput.value).trim().toUpperCase();
@@ -1038,7 +1065,7 @@ class HidamesOnlineEngine {
     this.isHost = false;
     onlineRole = 'guest';
 
-    this.peer = new Peer(); // Random peer ID for guest
+    this.peer = new Peer();
 
     this.peer.on('open', (id) => {
       const hostPeerId = `hidames-ludo-${code}`;
@@ -1046,7 +1073,6 @@ class HidamesOnlineEngine {
 
       conn.on('open', () => {
         this.hostConnection = conn;
-        // Send join request to host
         conn.send({ type: 'JOIN_REQUEST', name: myName });
 
         document.getElementById('setupModal').classList.add('hidden');
@@ -1058,7 +1084,7 @@ class HidamesOnlineEngine {
         this.handleGuestReceivedData(data);
       });
 
-      conn.on('error', (err) => {
+      conn.on('error', () => {
         alert('Could not connect to room ' + code + '. Please check the code.');
       });
 
@@ -1067,12 +1093,11 @@ class HidamesOnlineEngine {
       });
     });
 
-    this.peer.on('error', (err) => {
+    this.peer.on('error', () => {
       alert('Room not found or host has closed the room.');
     });
   }
 
-  // --- Host Event Handling ---
   handleHostReceivedData(conn, data) {
     if (data.type === 'JOIN_REQUEST') {
       if (this.lobbyPlayers.length >= onlineCapacity) {
@@ -1081,7 +1106,6 @@ class HidamesOnlineEngine {
         return;
       }
 
-      // Assign Next Available Color: Red (Host) -> Green -> Yellow -> Blue
       const colorOrder = ['red', 'green', 'yellow', 'blue'];
       const assignedColor = colorOrder[this.lobbyPlayers.length];
 
@@ -1098,7 +1122,6 @@ class HidamesOnlineEngine {
       this.connections.push(conn);
       this.lobbyPlayers.push(newPlayer);
 
-      // Confirm join to guest with their assigned color
       conn.send({
         type: 'JOIN_CONFIRMED',
         color: assignedColor,
@@ -1107,19 +1130,16 @@ class HidamesOnlineEngine {
         roomCode: this.roomCode
       });
 
-      // Broadcast updated lobby to all connected peers
       this.broadcastLobbyUpdate();
       this.updateLobbyUI();
       sounds.unlock();
     } else if (data.type === 'DICE_ROLLED') {
-      // Forward roll to all other peers & execute locally
       this.broadcast(data, conn);
       rollDice(data.val);
-    } else if (data.type === 'TOKEN_MOVED') {
-      // Forward token move & execute locally
+    } else if (data.type === 'TOKEN_MOVED_SYNC') {
       this.broadcast(data, conn);
       const token = tokens[data.color].find(t => t.id === data.id);
-      if (token) moveToken(token, true);
+      if (token) moveToken(token, true, data);
     }
   }
 
@@ -1130,7 +1150,6 @@ class HidamesOnlineEngine {
     this.updateLobbyUI();
   }
 
-  // --- Guest Event Handling ---
   handleGuestReceivedData(data) {
     if (data.type === 'JOIN_CONFIRMED') {
       myOnlineColor = data.color;
@@ -1161,9 +1180,9 @@ class HidamesOnlineEngine {
       initMatch();
     } else if (data.type === 'DICE_ROLLED') {
       rollDice(data.val);
-    } else if (data.type === 'TOKEN_MOVED') {
+    } else if (data.type === 'TOKEN_MOVED_SYNC') {
       const token = tokens[data.color].find(t => t.id === data.id);
-      if (token) moveToken(token, true);
+      if (token) moveToken(token, true, data);
     } else if (data.type === 'ROOM_FULL') {
       alert(data.message || 'Room is full!');
       location.reload();
@@ -1173,7 +1192,6 @@ class HidamesOnlineEngine {
     }
   }
 
-  // --- Lobby UI Update ---
   updateLobbyUI() {
     document.getElementById('lobbyRoomCodeVal').textContent = this.roomCode;
     document.getElementById('lobbyCountDisplay').textContent = `${this.lobbyPlayers.length}/${onlineCapacity}`;
@@ -1183,7 +1201,7 @@ class HidamesOnlineEngine {
 
     const colorOrder = ['red', 'green', 'yellow', 'blue'].slice(0, onlineCapacity);
 
-    colorOrder.forEach((color, idx) => {
+    colorOrder.forEach((color) => {
       const player = this.lobbyPlayers.find(p => p.color === color);
       const slotCard = document.createElement('div');
 
@@ -1224,7 +1242,6 @@ class HidamesOnlineEngine {
       grid.appendChild(slotCard);
     });
 
-    // Start Button only enabled for Host when at least 2 players have joined
     const startBtn = document.getElementById('lobbyStartGameBtn');
     const statusHint = document.getElementById('lobbyStatusHint');
 
@@ -1304,7 +1321,6 @@ class HidamesOnlineEngine {
     location.reload();
   }
 
-  // --- Sharing System (§2 Specification) ---
   copyRoomCode() {
     if (!this.roomCode) return;
     navigator.clipboard.writeText(this.roomCode);
@@ -1326,7 +1342,6 @@ class HidamesOnlineEngine {
     window.open(`https://api.whatsapp.com/send?text=${encoded}`, '_blank');
   }
 
-  // Check URL on load for ?room=CODE
   checkUrlParams() {
     const params = new URLSearchParams(window.location.search);
     const roomParam = params.get('room');
@@ -1336,7 +1351,6 @@ class HidamesOnlineEngine {
       const savedName = localStorage.getItem('hidames_player_name') || 'Guest ' + Math.floor(100 + Math.random() * 900);
       document.getElementById('inviteNameInput').value = savedName;
 
-      // Show Join Dialog
       document.getElementById('inviteJoinModal').classList.remove('hidden');
       document.getElementById('setupModal').classList.add('hidden');
     }
@@ -1358,13 +1372,11 @@ const onlineEngine = new HidamesOnlineEngine();
 document.addEventListener('DOMContentLoaded', () => {
   renderRosterGrid();
 
-  // Corner Dice Clicks with Online Turn Guard
   ALL_COLORS.forEach(c => {
     const box = document.getElementById(`dice-${c}`);
     if (box) {
       box.onclick = () => {
         if (activePlayers[currentTurnIdx] === c) {
-          // If in Online match, only allow if it is my assigned color
           if (currentConfig.mode === 'online' && c !== myOnlineColor) {
             showToast("Wait for your turn!");
             return;
@@ -1379,7 +1391,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Sound Toggle
   const sndBtn = document.getElementById('soundToggleBtn');
   if (sndBtn) {
     sndBtn.onclick = () => {
@@ -1388,7 +1399,6 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   }
 
-  // Fast Mode Toggle
   const fastBtn = document.getElementById('fastModeToggle');
   if (fastBtn) {
     fastBtn.onclick = () => {
@@ -1398,11 +1408,9 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   }
 
-  // Restart / Mode Button
   const rstBtn = document.getElementById('restartBtn');
   if (rstBtn) rstBtn.onclick = openSetupModal;
 
-  // Rules Guide Modal
   const rulesBtn = document.getElementById('rulesBtn');
   if (rulesBtn) {
     rulesBtn.onclick = () => {
@@ -1410,7 +1418,6 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   }
 
-  // Copy Room Link in header banner
   const copyHeaderBtn = document.getElementById('copyRoomCodeBtn');
   if (copyHeaderBtn) {
     copyHeaderBtn.onclick = () => {
@@ -1418,6 +1425,5 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   }
 
-  // Check URL parameters for ?room=CODE
   onlineEngine.checkUrlParams();
 });

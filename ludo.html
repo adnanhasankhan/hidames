@@ -103,14 +103,10 @@
       </div>
     </div>
 
-    <!-- Center Ludo Board (15x15 CSS Grid) -->
+    <!-- Center Ludo Board (15x15 CSS Grid with Centered Logo) -->
     <div class="board-wrapper">
       <div class="ludo-board" id="ludoBoard">
-        <!-- 4 Quadrants, Home Runways, Star Spots, and Center Trophy injected by ludo.js -->
-        <div class="center-trophy" id="centerTrophy">
-          <div class="crown-icon">👑</div>
-          <div class="trophy-brand">HID<span>AMES</span></div>
-        </div>
+        <!-- 4 Quadrants, Runways, Stars, and Center Goal with HIDAMES Logo are injected by ludo.js -->
       </div>
     </div>
 
@@ -167,6 +163,43 @@
   </main>
 
   <!-- =========================================================================
+       CREDIT SECTION (SAME DESIGN AS HOMEPAGE)
+       ========================================================================= -->
+  <footer class="ludo-footer">
+    <div class="developer-credit">
+      <span>Designed &amp; Developed by</span>
+      <a
+        href="https://www.instagram.com/adnannhasankhan/"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="developer-link"
+        aria-label="Visit developer's Instagram profile"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="15"
+          height="15"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <rect x="2" y="2" width="20" height="20" rx="5"/>
+          <circle cx="12" cy="12" r="4"/>
+          <circle cx="18" cy="6" r="1" fill="currentColor" stroke="none"/>
+        </svg>
+        <span>adnannhasankhan</span>
+      </a>
+    </div>
+    <p class="copyright">
+      © 2026 HIDAMES. All rights reserved.
+    </p>
+  </footer>
+
+  <!-- =========================================================================
        MODAL 1: GAME SETUP & LOBBY (PROPER TAB ISOLATION)
        ========================================================================= -->
   <div class="modal-overlay" id="setupModal">
@@ -184,8 +217,8 @@
         <button class="tab-btn" data-tab="online" onclick="switchSetupTab('online')">Online Rooms</button>
       </div>
 
-      <!-- WRAPPER A: LOCAL & AI SETTINGS (HIDDEN WHEN IN ONLINE MODE) -->
-      <div id="localSettingsWrapper">
+      <!-- WRAPPER A: LOCAL & AI SETTINGS (ONLY SHOWN FOR LOCAL & AI) -->
+      <div id="localSettingsWrapper" style="display: block;">
         <!-- Format & Teams Selector -->
         <div class="form-section">
           <label class="form-label">Match Format:</label>
@@ -225,8 +258,8 @@
         </div>
       </div>
 
-      <!-- WRAPPER B: ONLINE MULTIPLAYER ROOMS (ONLY VISIBLE UNDER ONLINE TAB) -->
-      <div id="onlineSection" class="hidden">
+      <!-- WRAPPER B: ONLINE MULTIPLAYER ROOMS (STRICTLY SHOWN IN ONLINE TAB ONLY) -->
+      <div id="onlineSection" style="display: none;">
         <div class="online-setup-box">
           <div class="form-section">
             <label class="form-label">Your Nickname:</label>
@@ -239,7 +272,7 @@
             <div class="online-card">
               <div class="online-card-icon">👑</div>
               <h3>Create Private Room</h3>
-              <p>Choose number of players and invite friends with a code or link.</p>
+              <p>Choose player count and invite friends with code or link.</p>
               
               <div class="online-capacity-selector">
                 <label>Players:</label>
@@ -260,7 +293,7 @@
               <p>Enter the 6-character room code shared by your friend.</p>
               
               <div class="join-code-row">
-                <input type="text" id="joinRoomCodeInput" class="room-code-input" placeholder="e.g. HD82K9" maxlength="6" uppercase>
+                <input type="text" id="joinRoomCodeInput" class="room-code-input" placeholder="e.g. HD82K9" maxlength="6">
               </div>
 
               <button class="action-btn-secondary w-full mt-2" onclick="onlineEngine.joinWithCode()">Join Room</button>
@@ -268,7 +301,7 @@
           </div>
 
           <div class="online-badge-footer">
-            <p><strong>⚡ Hidames Engine:</strong> Realtime private multiplayer with zero lag and instant room sharing.</p>
+            <p><strong>⚡ Hidames Engine:</strong> Play with friends anywhere by sharing your room code!</p>
           </div>
         </div>
       </div>

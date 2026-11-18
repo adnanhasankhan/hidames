@@ -1,8 +1,8 @@
 /* ==========================================================================
    HIDAMES LUDO KING EDITION - COMPLETE STYLESHEET
    Branding: Obsidian (#0c0c0e), Panels (#17171b), Metallic Gold (#d5ad65)
-   Features: 15x15 Ludo King Board, Fixed-Size Pawns, Blockades, 3D Dice,
-             Multiplayer Waiting Room Lobby, Online Rooms & Invitation Cards
+   Features: 15x15 Ludo King Board, Fixed-Size Pawns, Centered Gold Logo,
+             Multiplayer Waiting Room Lobby, Footer Developer Credits
    ========================================================================== */
 
 :root {
@@ -521,7 +521,7 @@ body {
   filter: drop-shadow(0 1px 2px rgba(0,0,0,0.8));
 }
 
-/* Center Finish (3x3 Goal) */
+/* Center Finish (3x3 Goal Area) */
 .center-goal {
   grid-area: 7 / 7 / 10 / 10;
   position: relative;
@@ -557,26 +557,24 @@ body {
   background: var(--blue);
 }
 
+/* Prominent Centered HIDAMES Gold Logo Crest */
 .center-trophy {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 10;
-  background: rgba(12, 12, 14, 0.92);
-  border: 1px solid var(--gold);
+  position: relative;
+  z-index: 25;
+  background: rgba(12, 12, 14, 0.95);
+  border: 2px solid var(--gold);
   border-radius: 50%;
-  width: 42px;
-  height: 42px;
+  width: 48px;
+  height: 48px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 0 12px rgba(0,0,0,0.7);
+  box-shadow: 0 0 16px rgba(213, 173, 101, 0.4), 0 4px 12px rgba(0,0,0,0.8);
   pointer-events: none;
 }
-.crown-icon { font-size: 13px; }
-.trophy-brand { font-size: 6px; font-weight: 900; color: #fff; letter-spacing: 1px; }
+.crown-icon { font-size: 14px; margin-bottom: -1px; }
+.trophy-brand { font-size: 7px; font-weight: 900; color: #ffffff; letter-spacing: 1px; }
 .trophy-brand span { color: var(--gold); }
 
 /* ==========================================================================
@@ -639,10 +637,68 @@ body {
 .pawn.stacked-3 { transform: scale(0.62) translate(-25%, 25%); position: absolute; }
 .pawn.stacked-4 { transform: scale(0.62) translate(25%, -25%); position: absolute; }
 
-/* In Base Slot: Centers naturally */
 .base-slot .pawn {
   position: relative !important;
   transform: none !important;
+}
+
+/* ==========================================================================
+   FOOTER DEVELOPER CREDITS (HOMEPAGE MATCHING STYLE)
+   ========================================================================== */
+
+.ludo-footer {
+  position: relative;
+  z-index: 10;
+  text-align: center;
+  padding: 16px 20px 24px;
+  background: var(--bg-dark);
+  border-top: 1px solid #1a1a20;
+  margin-top: 8px;
+}
+
+.developer-credit {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.developer-credit > span {
+  color: #99999f;
+  font-size: 13px;
+  letter-spacing: 0.5px;
+}
+
+.developer-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--gold);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 700;
+  transition: 0.25s ease;
+}
+
+.developer-link svg {
+  color: var(--gold);
+  transition: 0.25s ease;
+}
+
+.developer-link:hover {
+  color: var(--gold-hover);
+  transform: translateY(-1px);
+}
+
+.developer-link:hover svg {
+  transform: scale(1.15);
+}
+
+.copyright {
+  color: #777780;
+  font-size: 11px;
 }
 
 /* ==========================================================================
