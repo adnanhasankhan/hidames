@@ -1,31 +1,60 @@
 
 /* ==========================================
    HIDAMES LUDO - COMPLETE GAME ENGINE
+   Computer + Same Phone + Team Matches
+   Online multiplayer requires backend setup.
 ========================================== */
 
 document.addEventListener("DOMContentLoaded", function () {
 
-    console.log("HIDAMES Ludo is ready!");
+    const $ = id => document.getElementById(id);
 
     /* ==========================================
        HTML ELEMENTS
     ========================================== */
 
-    const track = document.getElementById("trackCells");
-    const board = document.getElementById("ludoBoard");
-    const dice = document.getElementById("dice");
-    const rollButton = document.getElementById("rollBtn");
+    const setupScreen = $("setupScreen");
+    const matchSection = $("matchSection");
+    const onlineSetup = $("onlineSetup");
+    const nameSection = $("nameSection");
+    const teamSection = $("teamSection");
+    const gameLayout = $("gameLayout");
+    const winnerScreen = $("winnerScreen");
 
-    const turnName = document.getElementById("turnName");
-    const turnSubtitle = document.getElementById("turnSubtitle");
-    const diceMessage = document.getElementById("diceMessage");
-    const lastRoll = document.getElementById("lastRoll");
+    const setupMessage = $("setupMessage");
+    const startGameBtn = $("startGameBtn");
 
-    if (
-        !track || !board || !dice || !rollButton ||
-        !turnName || !turnSubtitle || !diceMessage || !lastRoll
-    ) {
-        console.error("Ludo HTML elements are missing. Check ludo.html.");
+    const track = $("trackCells");
+    const board = $("ludoBoard");
+    const dice = $("dice");
+    const rollButton = $("rollBtn");
+
+    const turnName = $("turnName");
+    const turnSubtitle = $("turnSubtitle");
+    const diceMessage = $("diceMessage");
+    const lastRoll = $("lastRoll");
+
+    const requiredElements = [
+        setupScreen,
+        matchSection,
+        nameSection,
+        gameLayout,
+        winnerScreen,
+        track,
+        board,
+        dice,
+        rollButton,
+        turnName,
+        turnSubtitle,
+        diceMessage,
+        lastRoll,
+        startGameBtn
+    ];
+
+    if (requiredElements.some(element => !element)) {
+        console.error(
+            "Some required Ludo HTML elements are missing. Check your ludo.html IDs."
+        );
         return;
     }
 
@@ -35,8 +64,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const players = [
         {
-            name: "Player 1",
             color: "Red",
+            emoji: "🔴",
             laneClass: "lane-red",
             startClass: "start-red",
             startIndex: 0,
@@ -46,8 +75,8 @@ document.addEventListener("DOMContentLoaded", function () {
             ]
         },
         {
-            name: "Player 2",
             color: "Green",
+            emoji: "🟢",
             laneClass: "lane-green",
             startClass: "start-green",
             startIndex: 13,
@@ -57,8 +86,8 @@ document.addEventListener("DOMContentLoaded", function () {
             ]
         },
         {
-            name: "Player 3",
             color: "Yellow",
+            emoji: "🟡",
             laneClass: "lane-yellow",
             startClass: "start-yellow",
             startIndex: 39,
@@ -68,8 +97,8 @@ document.addEventListener("DOMContentLoaded", function () {
             ]
         },
         {
-            name: "Player 4",
             color: "Blue",
+            emoji: "🔵",
             laneClass: "lane-blue",
             startClass: "start-blue",
             startIndex: 26,
@@ -83,65 +112,47 @@ document.addEventListener("DOMContentLoaded", function () {
     // Turn order: Red -> Green -> Blue -> Yellow
     const turnOrder = [0, 1, 3, 2];
 
-    /* ==========================================
-       MAIN TRACK POSITIONS
-    ========================================== */
-
     const mainPath = [
-
-        // Red to Green
         [7, 2], [7, 3], [7, 4], [7, 5], [7, 6],
         [6, 7], [5, 7], [4, 7], [3, 7], [2, 7],
         [1, 7], [1, 8], [1, 9],
 
-        // Green to Blue
         [2, 9], [3, 9], [4, 9], [5, 9], [6, 9],
         [7, 10], [7, 11], [7, 12], [7, 13], [7, 14],
         [7, 15], [8, 15], [9, 15],
 
-        // Blue to Yellow
         [9, 14], [9, 13], [9, 12], [9, 11], [9, 10],
         [10, 9], [11, 9], [12, 9], [13, 9], [14, 9],
         [15, 9], [15, 8], [15, 7],
 
-        // Yellow to Red
         [14, 7], [13, 7], [12, 7], [11, 7], [10, 7],
         [9, 6], [9, 5], [9, 4], [9, 3], [9, 2],
         [9, 1], [8, 1], [7, 1]
     ];
 
+    const safePositions = [0, 8, 13, 21, 26, 34, 39, 47];
+
     if (mainPath.length !== 52) {
-        console.error("The Ludo track must contain exactly 52 cells.");
+        console.error("The board path must contain 52 cells.");
         return;
     }
 
-    const safePositions = [0, 8, 13, 21, 26, 34, 39, 47];
-
     /* ==========================================
        TOKEN CONFIGURATION
-
-       -1     = Inside home
-       0-51   = Main track
-       52-57  = Home lane
-       57     = Finished
     ========================================== */
 
     const tokens = players.map((player, playerIndex) => {
 
         return Array.from({ length: 4 }, (_, tokenIndex) => {
 
-            const id = `token-${playerIndex}-${tokenIndex}`;
-            const element = document.getElementById(id);
+            const element = $(`token-${playerIndex}-${tokenIndex}`);
 
-            if (!element) {
-                console.error(`Missing token: ${id}`);
-            } else {
+            if (element) {
                 element.setAttribute("role", "button");
                 element.setAttribute("tabindex", "0");
             }
 
             return {
-                id,
                 playerIndex,
                 tokenIndex,
                 progress: -1,
@@ -155,14 +166,20 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     if (tokens.flat().some(token => !token.element || !token.homeElement)) {
-        console.error("One or more Ludo tokens are missing from the HTML.");
+        console.error(
+            "Ludo token elements are missing. Check token IDs and .home-inner elements."
+        );
         return;
     }
 
     /* ==========================================
-       GAME VARIABLES
+       GAME STATE
     ========================================== */
 
+    let selectedMode = "";
+    let selectedMatch = "";
+
+    let activePlayers = [];
     let currentPlayer = 0;
     let currentRoll = 0;
 
@@ -171,10 +188,10 @@ document.addEventListener("DOMContentLoaded", function () {
     let waitingForToken = false;
     let gameOver = false;
 
+    let pendingTimers = [];
+
     const pathCells = [];
     const cellMap = new Map();
-
-    let pendingTimers = [];
 
     /* ==========================================
        TIMER MANAGEMENT
@@ -183,13 +200,11 @@ document.addEventListener("DOMContentLoaded", function () {
     function schedule(callback, delay) {
 
         const timer = setTimeout(() => {
+            pendingTimers = pendingTimers.filter(item => item !== timer);
 
-            pendingTimers = pendingTimers.filter(
-                item => item !== timer
-            );
-
-            callback();
-
+            if (!gameOver) {
+                callback();
+            }
         }, delay);
 
         pendingTimers.push(timer);
@@ -198,16 +213,264 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function clearPendingTimers() {
-
-        pendingTimers.forEach(timer => {
-            clearTimeout(timer);
-        });
-
+        pendingTimers.forEach(timer => clearTimeout(timer));
         pendingTimers = [];
     }
 
     /* ==========================================
-       CREATE TRACK CELL
+       SETUP SCREEN
+    ========================================== */
+
+    function showScreen(screen) {
+
+        setupScreen.hidden = screen !== "setup";
+        gameLayout.hidden = screen !== "game";
+        winnerScreen.hidden = screen !== "winner";
+    }
+
+    function getMatchConfiguration(match) {
+
+        const configurations = {
+
+            "individual-2": {
+                players: [0, 1],
+                teams: false
+            },
+
+            "individual-3": {
+                players: [0, 1, 3],
+                teams: false
+            },
+
+            "individual-4": {
+                players: [0, 1, 3, 2],
+                teams: false
+            },
+
+            "1v1": {
+                players: [0, 1],
+                teams: true,
+                teamA: [0],
+                teamB: [1]
+            },
+
+            "2v2": {
+                players: [0, 1, 3, 2],
+                teams: true,
+                teamA: [0, 2],
+                teamB: [1, 3]
+            },
+
+            "1v2": {
+                players: [0, 1, 3],
+                teams: true,
+                teamA: [0],
+                teamB: [1, 3]
+            },
+
+            "1v3": {
+                players: [0, 1, 3, 2],
+                teams: true,
+                teamA: [0],
+                teamB: [1, 3, 2]
+            }
+        };
+
+        return configurations[match] || null;
+    }
+
+    /* ==========================================
+       GAME MODE SELECTION
+    ========================================== */
+
+    document.querySelectorAll(".mode-card").forEach(button => {
+
+        button.addEventListener("click", function () {
+
+            selectedMode = button.dataset.mode;
+
+            document.querySelectorAll(".mode-card").forEach(item => {
+                item.classList.toggle("active", item === button);
+                item.classList.remove("selected");
+            });
+
+            document.querySelectorAll(".match-option").forEach(item => {
+                item.classList.remove("active", "selected");
+            });
+
+            selectedMatch = "";
+            startGameBtn.disabled = true;
+
+            matchSection.hidden = false;
+            nameSection.hidden = true;
+            teamSection.hidden = true;
+
+            onlineSetup.hidden = selectedMode !== "online";
+
+            if (selectedMode === "online") {
+
+                setupMessage.textContent =
+                    "Online multiplayer is coming soon. A real-time server connection is required.";
+
+            } else {
+
+                setupMessage.textContent =
+                    "Now choose your match type.";
+            }
+        });
+    });
+
+    /* ==========================================
+       MATCH TYPE SELECTION
+    ========================================== */
+
+    document.querySelectorAll(".match-option").forEach(button => {
+
+        button.addEventListener("click", function () {
+
+            if (!selectedMode || selectedMode === "online") {
+
+                setupMessage.textContent =
+                    "Online multiplayer is not available yet.";
+
+                return;
+            }
+
+            selectedMatch = button.dataset.match;
+
+            document.querySelectorAll(".match-option").forEach(item => {
+                item.classList.toggle("active", item === button);
+                item.classList.remove("selected");
+            });
+
+            const config = getMatchConfiguration(selectedMatch);
+
+            if (!config) {
+                setupMessage.textContent = "Invalid match selection.";
+                startGameBtn.disabled = true;
+                return;
+            }
+
+            if (selectedMode === "local" && config.players.length < 2) {
+                setupMessage.textContent = "Choose at least two players.";
+                return;
+            }
+
+            nameSection.hidden = false;
+            teamSection.hidden = !config.teams;
+
+            document.querySelectorAll(".name-field").forEach(field => {
+
+                const index = Number(field.dataset.playerName);
+
+                field.hidden = !config.players.includes(index);
+            });
+
+            renderTeamAssignment(config);
+
+            startGameBtn.disabled = false;
+
+            setupMessage.textContent =
+                selectedMode === "computer"
+                    ? "Enter your name. The remaining players will be computers."
+                    : "Enter player names and start your game.";
+        });
+    });
+
+    /* ==========================================
+       ONLINE ROOM BUTTONS
+    ========================================== */
+
+    const onlineMessage =
+        "Online multiplayer is not connected yet. Real rooms, invitation links and room codes will require a backend.";
+
+    if ($("createRoomBtn")) {
+        $("createRoomBtn").addEventListener("click", () => {
+            setupMessage.textContent = onlineMessage;
+        });
+    }
+
+    if ($("joinRoomBtn")) {
+        $("joinRoomBtn").addEventListener("click", () => {
+            setupMessage.textContent = onlineMessage;
+        });
+    }
+
+    /* ==========================================
+       PLAYER NAMES
+    ========================================== */
+
+    function getPlayerName(index) {
+
+        const input = $(`playerName${index}`);
+
+        return input && input.value.trim()
+            ? input.value.trim()
+            : `Player ${index + 1}`;
+    }
+
+    if ($("skipNamesBtn")) {
+
+        $("skipNamesBtn").addEventListener("click", () => {
+
+            players.forEach((player, index) => {
+
+                const input = $(`playerName${index}`);
+
+                if (input) {
+                    input.value = "";
+                }
+            });
+
+            setupMessage.textContent =
+                "Default player names selected.";
+
+            if (selectedMatch) {
+                const config = getMatchConfiguration(selectedMatch);
+
+                if (config && config.teams) {
+                    renderTeamAssignment(config);
+                }
+            }
+        });
+    }
+
+    /* ==========================================
+       TEAM ASSIGNMENT DISPLAY
+    ========================================== */
+
+    function renderTeamAssignment(config) {
+
+        if (!config.teams) return;
+
+        const teamA = $("teamAPlayers");
+        const teamB = $("teamBPlayers");
+
+        if (!teamA || !teamB) return;
+
+        teamA.innerHTML = "";
+        teamB.innerHTML = "";
+
+        function addTeamPlayers(container, indexes) {
+
+            indexes.forEach(index => {
+
+                const player = players[index];
+                const label = document.createElement("p");
+
+                label.textContent =
+                    `${player.emoji} ${getPlayerName(index)}`;
+
+                container.appendChild(label);
+            });
+        }
+
+        addTeamPlayers(teamA, config.teamA);
+        addTeamPlayers(teamB, config.teamB);
+    }
+
+    /* ==========================================
+       CREATE BOARD
     ========================================== */
 
     function createCell(row, col, className, index = null) {
@@ -230,9 +493,28 @@ document.addEventListener("DOMContentLoaded", function () {
         return cell;
     }
 
-    /* ==========================================
-       CREATE BOARD
-    ========================================== */
+    function updateTokenLabel(token) {
+
+        const player = players[token.playerIndex];
+
+        let status = "inside home";
+
+        if (token.finished) {
+
+            status = "finished";
+
+        } else if (token.progress >= 0) {
+
+            status = token.progress <= 51
+                ? "on the main track"
+                : "in the home lane";
+        }
+
+        token.element.setAttribute(
+            "aria-label",
+            `${player.color} token ${token.tokenIndex + 1}, ${status}`
+        );
+    }
 
     function createBoard() {
 
@@ -241,15 +523,10 @@ document.addEventListener("DOMContentLoaded", function () {
         pathCells.length = 0;
         cellMap.clear();
 
-        // Create 52 main track cells.
+        // Create the 52 main track cells.
         mainPath.forEach(([row, col], index) => {
 
-            const cell = createCell(
-                row,
-                col,
-                "main-track",
-                index
-            );
+            const cell = createCell(row, col, "main-track", index);
 
             if (safePositions.includes(index)) {
                 cell.classList.add("safe-cell");
@@ -258,7 +535,7 @@ document.addEventListener("DOMContentLoaded", function () {
             pathCells.push(cell);
         });
 
-        // Create four coloured home lanes.
+        // Create all four players' home lanes.
         players.forEach(player => {
 
             player.lane.forEach(([row, col], index) => {
@@ -275,7 +552,7 @@ document.addEventListener("DOMContentLoaded", function () {
             });
         });
 
-        // Highlight starting squares.
+        // Mark each player's starting cell.
         players.forEach(player => {
 
             const startCell = pathCells[player.startIndex];
@@ -285,7 +562,7 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         });
 
-        // Return all tokens to their homes.
+        // Return all tokens to their home positions.
         tokens.flat().forEach(token => {
 
             token.progress = -1;
@@ -303,30 +580,6 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     /* ==========================================
-       TOKEN ACCESSIBILITY LABEL
-    ========================================== */
-
-    function updateTokenLabel(token) {
-
-        const player = players[token.playerIndex];
-
-        let status = "inside home";
-
-        if (token.finished) {
-            status = "finished";
-        } else if (token.progress >= 0) {
-            status = token.progress <= 51
-                ? "on the main track"
-                : "in the home lane";
-        }
-
-        token.element.setAttribute(
-            "aria-label",
-            `${player.color} token ${token.tokenIndex + 1}, ${status}`
-        );
-    }
-
-    /* ==========================================
        TOKEN POSITION HELPERS
     ========================================== */
 
@@ -338,7 +591,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
         const player = players[token.playerIndex];
 
-        return (player.startIndex + token.progress) % 52;
+        return (
+            player.startIndex + token.progress
+        ) % 52;
     }
 
     function getTokenCell(token) {
@@ -347,15 +602,11 @@ document.addEventListener("DOMContentLoaded", function () {
             return null;
         }
 
-        // Main track: progress 0-51.
         if (token.progress <= 51) {
 
-            const globalIndex = getMainTrackIndex(token);
-
-            return pathCells[globalIndex] || null;
+            return pathCells[getMainTrackIndex(token)] || null;
         }
 
-        // Home lane: progress 52-57.
         if (token.progress <= 57) {
 
             const player = players[token.playerIndex];
@@ -371,79 +622,154 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     /* ==========================================
-       PLAYER TURN DISPLAY
+       PLAYER HELPERS
     ========================================== */
 
-    function updatePlayerTurn() {
+    function isActivePlayer(index) {
+
+        return activePlayers.some(player => player.index === index);
+    }
+
+    function getCurrentPlayer() {
+
+        return activePlayers.find(
+            player => player.index === currentPlayer
+        );
+    }
+
+    function getPlayerTeam(index) {
+
+        const config = getMatchConfiguration(selectedMatch);
+
+        if (!config || !config.teams) {
+            return null;
+        }
+
+        if (config.teamA.includes(index)) {
+            return "A";
+        }
+
+        if (config.teamB.includes(index)) {
+            return "B";
+        }
+
+        return null;
+    }
+
+    function isBot(index) {
+
+        const player = activePlayers.find(
+            item => item.index === index
+        );
+
+        return player ? player.isBot : false;
+    }
+
+    /* ==========================================
+       PLAYER DISPLAY
+    ========================================== */
+
+    function updatePlayerDisplay() {
 
         players.forEach((player, index) => {
 
-            const card = document.getElementById(`player-${index}`);
+            const card = $(`player-${index}`);
 
-            if (!card) return;
+            const nameDisplay = $(`playerNameDisplay${index}`);
 
-            card.classList.remove("active-player");
+            const rollBtn = $(`playerRollBtn${index}`);
 
-            const oldIndicator = card.querySelector(".turn-indicator");
+            const active = isActivePlayer(index);
 
-            if (oldIndicator) {
-                oldIndicator.remove();
+            const activePlayer = activePlayers.find(
+                item => item.index === index
+            );
+
+            if (card) {
+
+                card.hidden = !active;
+
+                card.classList.toggle(
+                    "active-player",
+                    active && index === currentPlayer
+                );
+
+                const oldIndicator =
+                    card.querySelector(".turn-indicator");
+
+                if (oldIndicator) {
+                    oldIndicator.remove();
+                }
+
+                if (active && index === currentPlayer) {
+
+                    const indicator = document.createElement("span");
+
+                    indicator.className = "turn-indicator";
+                    indicator.textContent = "YOUR TURN";
+
+                    card.appendChild(indicator);
+                }
             }
 
-            if (index === currentPlayer) {
+            if (nameDisplay && activePlayer) {
+                nameDisplay.textContent = activePlayer.name;
+            }
 
-                card.classList.add("active-player");
+            if (rollBtn) {
 
-                const indicator = document.createElement("span");
+                rollBtn.hidden = !active;
 
-                indicator.className = "turn-indicator";
-                indicator.textContent = "YOUR TURN";
-
-                card.appendChild(indicator);
+                rollBtn.disabled =
+                    !active ||
+                    index !== currentPlayer ||
+                    !activePlayer ||
+                    activePlayer.isBot ||
+                    isRolling ||
+                    isMoving ||
+                    waitingForToken ||
+                    gameOver;
             }
         });
+    }
 
-        if (gameOver) return;
+    function updatePlayerTurn() {
 
-        const player = players[currentPlayer];
+        const player = getCurrentPlayer();
+
+        if (!player || gameOver) return;
 
         turnName.textContent = player.name;
 
         turnSubtitle.textContent =
-            `${player.color} player's move`;
+            `${players[currentPlayer].color} player's move`;
+
+        updatePlayerDisplay();
     }
 
     /* ==========================================
-       GET MOVABLE TOKENS
+       TOKEN MOVEMENT OPTIONS
     ========================================== */
 
     function getMovableTokens(playerIndex, diceValue) {
 
         return tokens[playerIndex].filter(token => {
 
-            if (!token.element || token.finished) {
+            if (token.finished) {
                 return false;
             }
 
-            // A six is required to leave home.
             if (token.progress === -1) {
                 return diceValue === 6;
             }
 
-            // Exact roll required to finish.
             return token.progress + diceValue <= 57;
         });
     }
 
-    /* ==========================================
-       TOKEN HIGHLIGHTS
-    ========================================== */
-
     function clearTokenHighlights() {
 
         tokens.flat().forEach(token => {
-
-            if (!token.element) return;
 
             token.element.classList.remove(
                 "movable",
@@ -462,8 +788,17 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     /* ==========================================
-       ENABLE DICE
+       DICE CONTROLS
     ========================================== */
+
+    function setDiceDisabled(disabled) {
+
+        rollButton.disabled = disabled;
+
+        dice.disabled = disabled;
+
+        updatePlayerDisplay();
+    }
 
     function enableDice() {
 
@@ -473,22 +808,43 @@ document.addEventListener("DOMContentLoaded", function () {
         isRolling = false;
         isMoving = false;
 
-        rollButton.disabled = false;
-        dice.disabled = false;
-
         clearTokenHighlights();
 
         updatePlayerTurn();
 
-        diceMessage.textContent =
-            `${players[currentPlayer].name}, roll the dice!`;
+        const player = getCurrentPlayer();
+
+        if (!player) return;
+
+        const bot = player.isBot;
+
+        setDiceDisabled(bot);
+
+        diceMessage.textContent = bot
+            ? `${player.name} is thinking...`
+            : `${player.name}, roll the dice!`;
+
+        if (bot) {
+            schedule(botRoll, 900);
+        }
     }
 
-    /* ==========================================
-       ROLL DICE
-    ========================================== */
-
     function rollDice() {
+
+        if (
+            isRolling ||
+            isMoving ||
+            waitingForToken ||
+            gameOver ||
+            isBot(currentPlayer)
+        ) {
+            return;
+        }
+
+        performRoll();
+    }
+
+    function performRoll() {
 
         if (
             isRolling ||
@@ -501,12 +857,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
         isRolling = true;
 
-        rollButton.disabled = true;
-        dice.disabled = true;
+        setDiceDisabled(true);
 
         dice.classList.remove("rolling");
 
-        // Restart CSS animation.
         void dice.offsetWidth;
 
         dice.classList.add("rolling");
@@ -516,6 +870,8 @@ document.addEventListener("DOMContentLoaded", function () {
         const result = Math.floor(Math.random() * 6) + 1;
 
         schedule(() => {
+
+            if (gameOver) return;
 
             currentRoll = result;
 
@@ -532,18 +888,16 @@ document.addEventListener("DOMContentLoaded", function () {
 
             isRolling = false;
 
-            const movableTokens = getMovableTokens(
+            const movable = getMovableTokens(
                 currentPlayer,
                 result
             );
 
-            // No legal token can move.
-            if (movableTokens.length === 0) {
+            if (movable.length === 0) {
 
-                diceMessage.textContent =
-                    result === 6
-                        ? "Six! No legal move. Roll again!"
-                        : "No token can move. Next player's turn.";
+                diceMessage.textContent = result === 6
+                    ? "Six! No legal move. Roll again!"
+                    : "No legal move. Next player's turn.";
 
                 schedule(() => {
 
@@ -555,21 +909,117 @@ document.addEventListener("DOMContentLoaded", function () {
                         nextPlayer();
                     }
 
-                }, 1100);
+                }, 1000);
 
                 return;
             }
 
             waitingForToken = true;
 
-            showMovableTokens(movableTokens);
+            showMovableTokens(movable);
 
-            diceMessage.textContent =
-                result === 6
-                    ? "You rolled a SIX! Select a highlighted token!"
-                    : `You rolled ${result}! Select a highlighted token.`;
+            const player = getCurrentPlayer();
+
+            diceMessage.textContent = result === 6
+                ? `${player.name} rolled a SIX! Select a token.`
+                : `${player.name} rolled ${result}. Select a highlighted token.`;
+
+            if (player.isBot) {
+                schedule(botChooseToken, 700);
+            }
+
+            updatePlayerDisplay();
 
         }, 650);
+    }
+
+    /* ==========================================
+       COMPUTER PLAYER
+    ========================================== */
+
+    function botRoll() {
+
+        if (gameOver || !isBot(currentPlayer)) {
+            return;
+        }
+
+        performRoll();
+    }
+
+    function botChooseToken() {
+
+        if (
+            gameOver ||
+            !waitingForToken ||
+            !isBot(currentPlayer)
+        ) {
+            return;
+        }
+
+        const movable = getMovableTokens(
+            currentPlayer,
+            currentRoll
+        );
+
+        if (!movable.length) return;
+
+        // Prefer a move that finishes a token.
+        let chosen = movable.find(token => {
+
+            return token.progress >= 0 &&
+                token.progress + currentRoll === 57;
+        });
+
+        // Otherwise prefer capturing an opponent.
+        if (!chosen) {
+
+            chosen = movable.find(token => {
+
+                if (
+                    token.progress < 0 ||
+                    token.progress > 51
+                ) {
+                    return false;
+                }
+
+                const landingIndex = (
+                    players[currentPlayer].startIndex +
+                    token.progress +
+                    currentRoll
+                ) % 52;
+
+                return !safePositions.includes(landingIndex) &&
+                    tokens.flat().some(other => {
+
+                        return other.playerIndex !== currentPlayer &&
+                            !other.finished &&
+                            other.progress >= 0 &&
+                            other.progress <= 51 &&
+                            getMainTrackIndex(other) === landingIndex;
+                    });
+            });
+        }
+
+        // Prefer bringing a token out of home.
+        if (!chosen) {
+
+            chosen = movable.find(
+                token => token.progress === -1
+            );
+        }
+
+        // Otherwise move the token furthest along.
+        if (!chosen) {
+
+            chosen = movable.reduce((best, token) => {
+
+                return token.progress > best.progress
+                    ? token
+                    : best;
+            });
+        }
+
+        selectToken(chosen);
     }
 
     /* ==========================================
@@ -580,58 +1030,36 @@ document.addEventListener("DOMContentLoaded", function () {
 
         const landingIndex = getMainTrackIndex(movingToken);
 
-        // No capture in home or home lane.
-        if (landingIndex === null) {
-            return 0;
-        }
+        if (landingIndex === null) return 0;
 
-        // Safe squares protect tokens.
         if (safePositions.includes(landingIndex)) {
             return 0;
         }
 
-        const opponentsOnCell = tokens
-            .flat()
-            .filter(otherToken => {
+        const opponents = tokens.flat().filter(other => {
 
-                if (
-                    !otherToken.element ||
-                    otherToken.finished ||
-                    otherToken.playerIndex === movingToken.playerIndex
-                ) {
-                    return false;
-                }
+            if (
+                other.finished ||
+                other.playerIndex === movingToken.playerIndex
+            ) {
+                return false;
+            }
 
-                return (
-                    getMainTrackIndex(otherToken) === landingIndex
-                );
-            });
+            return getMainTrackIndex(other) === landingIndex;
+        });
 
-        // Two or more opponents protect the square.
-        if (opponentsOnCell.length !== 1) {
+        if (opponents.length !== 1) {
             return 0;
         }
 
-        const capturedToken = opponentsOnCell[0];
+        const captured = opponents[0];
 
-        capturedToken.progress = -1;
-        capturedToken.finished = false;
+        captured.progress = -1;
+        captured.finished = false;
 
-        capturedToken.homeElement.appendChild(
-            capturedToken.element
-        );
+        captured.homeElement.appendChild(captured.element);
 
-        capturedToken.element.classList.remove(
-            "movable",
-            "selected-token"
-        );
-
-        updateTokenLabel(capturedToken);
-
-        console.log(
-            `${players[movingToken.playerIndex].color} captured ` +
-            `${players[capturedToken.playerIndex].color}'s token!`
-        );
+        updateTokenLabel(captured);
 
         return 1;
     }
@@ -651,24 +1079,24 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
         }
 
-        const movableTokens = getMovableTokens(
+        const movable = getMovableTokens(
             currentPlayer,
             currentRoll
         );
 
-        if (!movableTokens.includes(token)) {
+        if (!movable.includes(token)) {
             return;
         }
 
         waitingForToken = false;
+
         isMoving = true;
 
         clearTokenHighlights();
 
         token.element.classList.add("selected-token");
 
-        rollButton.disabled = true;
-        dice.disabled = true;
+        setDiceDisabled(true);
 
         moveToken(token);
     }
@@ -681,7 +1109,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         const diceValue = currentRoll;
 
-        // Bring token out of home on a six.
+        // Bring a token out of home on a six.
         if (token.progress === -1) {
 
             token.progress = 0;
@@ -689,17 +1117,17 @@ document.addEventListener("DOMContentLoaded", function () {
             const startCell = getTokenCell(token);
 
             if (!startCell) {
-                console.error("Token starting cell not found.");
+
+                console.error("Starting cell not found.");
+
                 finishTokenMove(token);
+
                 return;
             }
 
             startCell.appendChild(token.element);
 
             updateTokenLabel(token);
-
-            diceMessage.textContent =
-                `${players[currentPlayer].name} brought a token out!`;
 
             finishTokenMove(token);
 
@@ -711,18 +1139,24 @@ document.addEventListener("DOMContentLoaded", function () {
         function moveOneStep() {
 
             if (stepsMoved >= diceValue) {
+
                 finishTokenMove(token);
+
                 return;
             }
 
             token.progress++;
+
             stepsMoved++;
 
             const targetCell = getTokenCell(token);
 
             if (!targetCell) {
-                console.error("Token destination cell not found.");
+
+                console.error("Token destination not found.");
+
                 finishTokenMove(token);
+
                 return;
             }
 
@@ -737,6 +1171,88 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     /* ==========================================
+       WIN CHECK
+    ========================================== */
+
+    function getWinningTeam(playerIndex) {
+
+        const team = getPlayerTeam(playerIndex);
+
+        // Individual match.
+        if (!team) {
+
+            return tokens[playerIndex].every(
+                token => token.finished
+            )
+                ? "individual"
+                : null;
+        }
+
+        // Team match.
+        const config = getMatchConfiguration(selectedMatch);
+
+        const teammates = team === "A"
+            ? config.teamA
+            : config.teamB;
+
+        const teamHasWon = teammates.every(index => {
+
+            return tokens[index].every(
+                token => token.finished
+            );
+        });
+
+        return teamHasWon ? team : null;
+    }
+
+    function showWinner(playerIndex, winningTeam) {
+
+        gameOver = true;
+
+        clearPendingTimers();
+
+        clearTokenHighlights();
+
+        setDiceDisabled(true);
+
+        const player = activePlayers.find(
+            item => item.index === playerIndex
+        );
+
+        if (!player) return;
+
+        let title = "CONGRATULATIONS!";
+
+        let message =
+            `${player.name} has won HIDAMES Ludo!`;
+
+        let winnerName = player.name;
+
+        if (
+            winningTeam === "A" ||
+            winningTeam === "B"
+        ) {
+
+            title = "TEAM VICTORY!";
+
+            winnerName = `Team ${winningTeam}`;
+
+            message =
+                `Team ${winningTeam} has won HIDAMES Ludo!`;
+        }
+
+        $("winnerTitle").textContent = title;
+
+        $("winnerMessage").textContent = message;
+
+        $("winnerName").textContent = winnerName;
+
+        showScreen("winner");
+
+        console.log(`${winnerName} won HIDAMES Ludo!`);
+    }
+
+    /* ==========================================
        FINISH TOKEN MOVEMENT
     ========================================== */
 
@@ -748,7 +1264,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
         const capturedCount = captureOpponentTokens(token);
 
-        // Token reaches the final home-lane cell.
         if (token.progress === 57) {
 
             token.finished = true;
@@ -756,44 +1271,31 @@ document.addEventListener("DOMContentLoaded", function () {
             updateTokenLabel(token);
 
             diceMessage.textContent =
-                `${players[currentPlayer].name} finished a token!`;
+                `${getCurrentPlayer().name} finished a token!`;
 
         } else {
 
             diceMessage.textContent =
-                `${players[currentPlayer].name} moved ${currentRoll} steps.`;
+                `${getCurrentPlayer().name} moved ${currentRoll} steps.`;
         }
 
         if (capturedCount > 0) {
-            diceMessage.textContent += " Opponent token captured!";
+
+            diceMessage.textContent +=
+                " Opponent token captured!";
         }
 
-        // Check whether all four tokens have finished.
-        const playerWon = tokens[currentPlayer].every(
-            item => item.finished
-        );
+        const winningTeam = getWinningTeam(currentPlayer);
 
-        if (playerWon) {
+        if (winningTeam) {
 
-            gameOver = true;
-
-            diceMessage.textContent =
-                `🏆 ${players[currentPlayer].name} wins HIDAMES Ludo!`;
-
-            turnName.textContent = "WINNER!";
-
-            turnSubtitle.textContent =
-                `${players[currentPlayer].color} player won!`;
-
-            rollButton.disabled = true;
-            dice.disabled = true;
-
-            clearTokenHighlights();
+            showWinner(currentPlayer, winningTeam);
 
             return;
         }
 
-        // A six gives another turn.
+        updatePlayerDisplay();
+
         if (currentRoll === 6) {
 
             diceMessage.textContent += " Extra turn!";
@@ -812,31 +1314,112 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function nextPlayer() {
 
-        if (gameOver) return;
+        if (gameOver || activePlayers.length === 0) {
+            return;
+        }
 
         waitingForToken = false;
 
         clearTokenHighlights();
 
-        const currentTurnPosition = turnOrder.indexOf(currentPlayer);
+        const currentPosition = activePlayers.findIndex(
+            player => player.index === currentPlayer
+        );
 
-        const nextTurnPosition =
-            (currentTurnPosition + 1) % turnOrder.length;
+        const nextPosition =
+            (currentPosition + 1) % activePlayers.length;
 
-        currentPlayer = turnOrder[nextTurnPosition];
+        currentPlayer = activePlayers[nextPosition].index;
 
         enableDice();
     }
 
     /* ==========================================
-       RESET GAME
+       START GAME
     ========================================== */
 
-    function resetGame() {
+    function startGame() {
+
+        if (!selectedMode || !selectedMatch) {
+            return;
+        }
+
+        if (selectedMode === "online") {
+
+            setupMessage.textContent = onlineMessage;
+
+            return;
+        }
+
+        const config = getMatchConfiguration(selectedMatch);
+
+        if (!config) return;
 
         clearPendingTimers();
 
-        currentPlayer = 0;
+        activePlayers = config.players.map((index, position) => {
+
+            return {
+                index,
+                name: getPlayerName(index),
+                isBot: selectedMode === "computer" && position !== 0
+            };
+        });
+
+        // Update team labels with the latest player names.
+        if (config.teams) {
+            renderTeamAssignment(config);
+        }
+
+        currentPlayer = activePlayers[0].index;
+
+        currentRoll = 0;
+
+        isRolling = false;
+        isMoving = false;
+        waitingForToken = false;
+        gameOver = false;
+
+        createBoard();
+
+        // Reset the dice display.
+        dice.classList.remove("rolling");
+
+        dice.dataset.value = "1";
+
+        dice.setAttribute(
+            "aria-label",
+            "Dice showing 1"
+        );
+
+        lastRoll.textContent = "—";
+
+        showScreen("game");
+
+        enableDice();
+
+        console.log("HIDAMES Ludo game started.");
+    }
+
+    startGameBtn.addEventListener("click", startGame);
+
+    /* ==========================================
+       RESET / PLAY AGAIN
+    ========================================== */
+
+    function restartGame() {
+
+        if (!activePlayers.length) {
+
+            showScreen("setup");
+
+            return;
+        }
+
+        clearPendingTimers();
+
+        currentPlayer = activePlayers[0].index;
+
         currentRoll = 0;
 
         isRolling = false;
@@ -857,35 +1440,90 @@ document.addEventListener("DOMContentLoaded", function () {
 
         lastRoll.textContent = "—";
 
-        rollButton.disabled = false;
-        dice.disabled = false;
-
-        updatePlayerTurn();
+        showScreen("game");
 
         enableDice();
+    }
 
-        console.log("HIDAMES Ludo restarted.");
+    if ($("playAgainBtn")) {
+
+        $("playAgainBtn").addEventListener(
+            "click",
+            restartGame
+        );
     }
 
     /* ==========================================
-       OPTIONAL RESET BUTTON
+       BACK TO MENU
     ========================================== */
 
-    const resetButton = document.getElementById("resetBtn");
+    function backToMenu() {
 
-    if (resetButton) {
-        resetButton.addEventListener("click", resetGame);
+        clearPendingTimers();
+
+        gameOver = true;
+
+        isRolling = false;
+        isMoving = false;
+        waitingForToken = false;
+
+        clearTokenHighlights();
+
+        activePlayers = [];
+
+        selectedMode = "";
+        selectedMatch = "";
+
+        document.querySelectorAll(
+            ".mode-card, .match-option"
+        ).forEach(button => {
+
+            button.classList.remove(
+                "active",
+                "selected"
+            );
+        });
+
+        matchSection.hidden = true;
+
+        onlineSetup.hidden = true;
+
+        nameSection.hidden = true;
+
+        teamSection.hidden = true;
+
+        startGameBtn.disabled = true;
+
+        setupMessage.textContent =
+            "Select a game mode to continue.";
+
+        showScreen("setup");
+    }
+
+    if ($("backToMenuBtn")) {
+
+        $("backToMenuBtn").addEventListener(
+            "click",
+            backToMenu
+        );
+    }
+
+    if ($("winnerMenuBtn")) {
+
+        $("winnerMenuBtn").addEventListener(
+            "click",
+            backToMenu
+        );
     }
 
     /* ==========================================
-       TOKEN CLICK AND KEYBOARD EVENTS
+       TOKEN CLICK / KEYBOARD EVENTS
     ========================================== */
 
     tokens.flat().forEach(token => {
 
-        if (!token.element) return;
-
         token.element.addEventListener("click", () => {
+
             selectToken(token);
         });
 
@@ -895,7 +1533,9 @@ document.addEventListener("DOMContentLoaded", function () {
                 event.key === "Enter" ||
                 event.key === " "
             ) {
+
                 event.preventDefault();
+
                 selectToken(token);
             }
         });
@@ -905,27 +1545,48 @@ document.addEventListener("DOMContentLoaded", function () {
        DICE BUTTON EVENTS
     ========================================== */
 
-    rollButton.addEventListener("click", rollDice);
+    rollButton.addEventListener(
+        "click",
+        rollDice
+    );
 
-    dice.addEventListener("click", rollDice);
+    dice.addEventListener(
+        "click",
+        rollDice
+    );
+
+    document.querySelectorAll(
+        "[data-player-roll]"
+    ).forEach(button => {
+
+        button.addEventListener("click", function () {
+
+            const playerIndex =
+                Number(button.dataset.playerRoll);
+
+            if (playerIndex !== currentPlayer) {
+                return;
+            }
+
+            rollDice();
+        });
+    });
 
     /* ==========================================
-       START GAME
+       INITIAL STATE
     ========================================== */
 
     createBoard();
 
-    dice.dataset.value = "1";
+    showScreen("setup");
 
-    dice.setAttribute(
-        "aria-label",
-        "Dice showing 1"
-    );
+    matchSection.hidden = true;
+    onlineSetup.hidden = true;
+    nameSection.hidden = true;
+    teamSection.hidden = true;
 
-    lastRoll.textContent = "—";
+    startGameBtn.disabled = true;
 
-    updatePlayerTurn();
-
-    enableDice();
+    console.log("HIDAMES Ludo setup is ready!");
 
 });

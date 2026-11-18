@@ -1,324 +1,340 @@
 
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <meta name="description" content="Play classic Ludo on HIDAMES. Roll the dice, move your tokens, and rule the board.">
-
-    <meta name="theme-color" content="#0c0c10">
-
-    <title>HIDAMES | Ludo</title>
-
-    <!-- LUDO CSS -->
+    <meta name="theme-color" content="#101018">
+    <title>HIDAMES - Ludo</title>
     <link rel="stylesheet" href="ludo.css">
 </head>
-
 <body>
 
-    <!-- NAVIGATION -->
-    <header class="topbar">
+<header class="topbar">
+    <a href="exploregames.html" class="back-link">← Games</a>
+    <h1>HIDAMES <span>LUDO</span></h1>
+</header>
 
-        <a href="index.html" class="home-btn">
-            <span aria-hidden="true">←</span> Home
-        </a>
+<main class="ludo-container">
 
-        <a href="index.html" class="brand" aria-label="HIDAMES Home">
-            HID<span>AMES</span>
-        </a>
+    <!-- GAME SETUP -->
+    <section id="setupScreen" class="setup-screen">
 
-        <div class="online-status">
-            <span class="status-dot" aria-hidden="true"></span>
-            GAME ROOM
+        <div class="setup-heading">
+            <h2>Let's Play Ludo!</h2>
+            <p>Choose your game mode and get ready to play.</p>
         </div>
 
-    </header>
-
-    <main class="page-container">
-
-        <!-- INTRO -->
-        <section class="intro">
-
-            <p class="eyebrow">THE CLASSIC BOARD GAME</p>
-
-            <h1>LU<span>DO</span></h1>
-
-            <p>Roll the dice. Make your move. Rule the board.</p>
-
-        </section>
-
-        <!-- GAME LAYOUT -->
-        <section class="game-layout">
-
-            <!-- PLAYER PANEL -->
-            <aside class="player-panel">
-
-                <div class="panel-heading">
-                    <span>PLAYERS</span>
-                    <span class="player-count">4 / 4</span>
-                </div>
-
-                <!-- RED PLAYER -->
-                <div class="player-card active-player" id="player-0">
-
-                    <div class="avatar red-avatar" aria-hidden="true">R</div>
-
-                    <div class="player-info">
-                        <h3>Player 1</h3>
-                        <p>RED PLAYER</p>
-                    </div>
-
-                    <span class="turn-indicator">YOUR TURN</span>
-
-                </div>
-
-                <!-- GREEN PLAYER -->
-                <div class="player-card" id="player-1">
-
-                    <div class="avatar green-avatar" aria-hidden="true">G</div>
-
-                    <div class="player-info">
-                        <h3>Player 2</h3>
-                        <p>GREEN PLAYER</p>
-                    </div>
-
-                </div>
-
-                <!-- YELLOW PLAYER -->
-                <div class="player-card" id="player-2">
-
-                    <div class="avatar yellow-avatar" aria-hidden="true">Y</div>
-
-                    <div class="player-info">
-                        <h3>Player 3</h3>
-                        <p>YELLOW PLAYER</p>
-                    </div>
-
-                </div>
-
-                <!-- BLUE PLAYER -->
-                <div class="player-card" id="player-3">
-
-                    <div class="avatar blue-avatar" aria-hidden="true">B</div>
-
-                    <div class="player-info">
-                        <h3>Player 4</h3>
-                        <p>BLUE PLAYER</p>
-                    </div>
-
-                </div>
-
-                <!-- RULES -->
-                <div class="rules-card">
-
-                    <span class="rules-icon" aria-hidden="true">✦</span>
-
-                    <h3>How to play</h3>
-
-                    <p>
-                        Roll a six to bring a token out of your home.
-                        Move your tokens around the board to reach
-                        the center.
-                    </p>
-
-                </div>
-
-            </aside>
-
-            <!-- LUDO BOARD -->
-            <section class="board-section" aria-label="Ludo game board">
-
-                <div class="board-topline">
-
-                    <span>CLASSIC MODE</span>
-
-                    <span class="board-decoration" aria-hidden="true">
-                        ✦ &nbsp; HIDAMES ARENA
-                    </span>
-
-                </div>
-
-                <div class="board-frame">
-
-                    <div class="ludo-board" id="ludoBoard">
-
-                        <!-- JAVASCRIPT CREATES TRACK CELLS HERE -->
-                        <div id="trackCells"></div>
-
-                        <!-- RED HOME -->
-                        <div class="home red-home">
-
-                            <div class="home-label">RED</div>
-
-                            <div class="home-inner">
-
-                                <div class="token red-token" id="token-0-0"></div>
-                                <div class="token red-token" id="token-0-1"></div>
-                                <div class="token red-token" id="token-0-2"></div>
-                                <div class="token red-token" id="token-0-3"></div>
-
-                            </div>
-
-                        </div>
-
-                        <!-- GREEN HOME -->
-                        <div class="home green-home">
-
-                            <div class="home-label">GREEN</div>
-
-                            <div class="home-inner">
-
-                                <div class="token green-token" id="token-1-0"></div>
-                                <div class="token green-token" id="token-1-1"></div>
-                                <div class="token green-token" id="token-1-2"></div>
-                                <div class="token green-token" id="token-1-3"></div>
-
-                            </div>
-
-                        </div>
-
-                        <!-- YELLOW HOME -->
-                        <div class="home yellow-home">
-
-                            <div class="home-label">YELLOW</div>
-
-                            <div class="home-inner">
-
-                                <div class="token yellow-token" id="token-2-0"></div>
-                                <div class="token yellow-token" id="token-2-1"></div>
-                                <div class="token yellow-token" id="token-2-2"></div>
-                                <div class="token yellow-token" id="token-2-3"></div>
-
-                            </div>
-
-                        </div>
-
-                        <!-- BLUE HOME -->
-                        <div class="home blue-home">
-
-                            <div class="home-label">BLUE</div>
-
-                            <div class="home-inner">
-
-                                <div class="token blue-token" id="token-3-0"></div>
-                                <div class="token blue-token" id="token-3-1"></div>
-                                <div class="token blue-token" id="token-3-2"></div>
-                                <div class="token blue-token" id="token-3-3"></div>
-
-                            </div>
-
-                        </div>
-
-                        <!-- CENTER FINISH -->
-                        <div class="board-center" aria-hidden="true">
-
-                            <div class="center-triangle center-red"></div>
-
-                            <div class="center-triangle center-green"></div>
-
-                            <div class="center-triangle center-yellow"></div>
-
-                            <div class="center-triangle center-blue"></div>
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-                <!-- BOARD CAPTION -->
-                <div class="board-caption">
-
-                    <span>● 4 WARRIORS</span>
-
-                    <span>● HIDAMES LUDO BOARD</span>
-
-                    <span>● 16 QUEENS</span>
-
-                </div>
-
-            </section>
-
-            <!-- DICE PANEL -->
-            <aside class="dice-panel">
-
-                <p class="dice-label">CURRENT TURN</p>
-
-                <h2 id="turnName">Player 1</h2>
-
-                <p class="turn-subtitle" id="turnSubtitle">
-                    Red player's move
-                </p>
-
-                <!-- DICE -->
-                <div class="dice-stage">
-
-                    <div class="dice-shadow" aria-hidden="true"></div>
-
-                    <button
-                        type="button"
-                        class="dice"
-                        id="dice"
-                        aria-label="Roll dice"
-                        aria-controls="diceMessage"
-                    >
-
-                        <span class="pip pip-1" aria-hidden="true"></span>
-                        <span class="pip pip-2" aria-hidden="true"></span>
-                        <span class="pip pip-3" aria-hidden="true"></span>
-                        <span class="pip pip-4" aria-hidden="true"></span>
-                        <span class="pip pip-5" aria-hidden="true"></span>
-                        <span class="pip pip-6" aria-hidden="true"></span>
-                        <span class="pip pip-7" aria-hidden="true"></span>
-
-                    </button>
-
-                </div>
-
-                <!-- ROLL BUTTON -->
-                <button type="button" class="roll-btn" id="rollBtn">
-
-                    <span>ROLL DICE</span>
-
-                    <span class="roll-arrow" aria-hidden="true">↗</span>
-
+        <section class="setup-section">
+            <h3>1. Choose Game Mode</h3>
+
+            <div class="mode-grid">
+                <button class="mode-card" data-mode="computer" type="button">
+                    <span class="mode-icon">🤖</span>
+                    <strong>Play with Computer</strong>
+                    <small>Play against smart bots</small>
                 </button>
 
-                <!-- GAME MESSAGE -->
-                <p class="dice-message" id="diceMessage" aria-live="polite">
-                    Tap the dice or button to roll.
-                </p>
+                <button class="mode-card" data-mode="local" type="button">
+                    <span class="mode-icon">📱</span>
+                    <strong>Same Phone</strong>
+                    <small>Play together on one device</small>
+                </button>
 
-                <!-- LAST ROLL -->
-                <div class="last-roll">
+                <button class="mode-card" data-mode="online" type="button">
+                    <span class="mode-icon">🌐</span>
+                    <strong>Online Multiplayer</strong>
+                    <small>Play with friends online</small>
+                </button>
+            </div>
+        </section>
 
-                    <span>LAST ROLL</span>
+        <section id="matchSection" class="setup-section" hidden>
+            <h3>2. Choose Match Type</h3>
 
-                    <strong id="lastRoll">—</strong>
+            <div class="match-grid">
+                <button class="match-option" data-match="individual-2" type="button">
+                    Individual · 2 Players
+                </button>
+                <button class="match-option" data-match="individual-3" type="button">
+                    Individual · 3 Players
+                </button>
+                <button class="match-option" data-match="individual-4" type="button">
+                    Individual · 4 Players
+                </button>
+                <button class="match-option" data-match="1v1" type="button">
+                    Teams · 1 vs 1
+                </button>
+                <button class="match-option" data-match="2v2" type="button">
+                    Teams · 2 vs 2
+                </button>
+                <button class="match-option" data-match="1v2" type="button">
+                    Teams · 1 vs 2
+                </button>
+                <button class="match-option" data-match="1v3" type="button">
+                    Teams · 1 vs 3
+                </button>
+            </div>
+        </section>
 
+        <!-- ONLINE ROOM SETUP -->
+        <section id="onlineSetup" class="setup-section" hidden>
+            <h3>3. Online Room</h3>
+
+            <div class="online-actions">
+                <button id="createRoomBtn" class="primary-btn" type="button">
+                    Create Private Room
+                </button>
+
+                <div class="room-divider">OR</div>
+
+                <label for="roomCodeInput">Enter Room Code</label>
+                <input
+                    id="roomCodeInput"
+                    type="text"
+                    maxlength="8"
+                    placeholder="Enter room code"
+                    autocomplete="off"
+                >
+
+                <button id="joinRoomBtn" class="secondary-btn" type="button">
+                    Join Room
+                </button>
+            </div>
+
+            <div id="roomDetails" class="room-details" hidden>
+                <p>Your Room Code</p>
+                <strong id="displayRoomCode">------</strong>
+
+                <button id="copyRoomCodeBtn" type="button">
+                    Copy Room Code
+                </button>
+
+                <p>Invitation Link</p>
+                <input id="inviteLink" type="text" readonly>
+
+                <button id="copyInviteLinkBtn" type="button">
+                    Copy Invitation Link
+                </button>
+            </div>
+        </section>
+
+        <!-- PLAYER NAMES -->
+        <section id="nameSection" class="setup-section" hidden>
+            <h3>4. Player Names</h3>
+            <p>Enter names or skip to use default player names.</p>
+
+            <div class="name-inputs">
+
+                <div class="name-field" data-player-name="0">
+                    <label for="playerName0">🔴 Red Player</label>
+                    <input id="playerName0" type="text" maxlength="15" placeholder="Player 1">
                 </div>
 
-            </aside>
+                <div class="name-field" data-player-name="1">
+                    <label for="playerName1">🟢 Green Player</label>
+                    <input id="playerName1" type="text" maxlength="15" placeholder="Player 2">
+                </div>
+
+                <div class="name-field" data-player-name="2">
+                    <label for="playerName2">🟡 Yellow Player</label>
+                    <input id="playerName2" type="text" maxlength="15" placeholder="Player 3">
+                </div>
+
+                <div class="name-field" data-player-name="3">
+                    <label for="playerName3">🔵 Blue Player</label>
+                    <input id="playerName3" type="text" maxlength="15" placeholder="Player 4">
+                </div>
+
+            </div>
+
+            <button id="skipNamesBtn" class="text-btn" type="button">
+                Skip Names
+            </button>
+        </section>
+
+        <!-- TEAM ASSIGNMENT -->
+        <section id="teamSection" class="setup-section" hidden>
+            <h3>5. Assign Teams</h3>
+
+            <div id="teamAssignment" class="team-assignment">
+                <div class="team-card team-a">
+                    <h4>Team A</h4>
+                    <div id="teamAPlayers"></div>
+                </div>
+
+                <div class="team-card team-b">
+                    <h4>Team B</h4>
+                    <div id="teamBPlayers"></div>
+                </div>
+            </div>
+        </section>
+
+        <div class="setup-footer">
+            <p id="setupMessage" role="status" aria-live="polite">
+                Select a game mode to continue.
+            </p>
+
+            <button id="startGameBtn" class="start-game-btn" type="button" disabled>
+                Start Game
+            </button>
+        </div>
+
+    </section>
+
+    <!-- GAME AREA -->
+    <section id="gameLayout" class="game-layout" hidden>
+
+        <div class="board-section">
+
+            <div class="board-heading">
+                <h2>Ludo Board</h2>
+            </div>
+
+            <div id="ludoBoard" class="ludo-board">
+
+                <div class="home home-red">
+                    <div class="home-inner">
+                        <div class="token" id="token-0-0"></div>
+                        <div class="token" id="token-0-1"></div>
+                        <div class="token" id="token-0-2"></div>
+                        <div class="token" id="token-0-3"></div>
+                    </div>
+                </div>
+
+                <div class="home home-green">
+                    <div class="home-inner">
+                        <div class="token" id="token-1-0"></div>
+                        <div class="token" id="token-1-1"></div>
+                        <div class="token" id="token-1-2"></div>
+                        <div class="token" id="token-1-3"></div>
+                    </div>
+                </div>
+
+                <div class="home home-yellow">
+                    <div class="home-inner">
+                        <div class="token" id="token-2-0"></div>
+                        <div class="token" id="token-2-1"></div>
+                        <div class="token" id="token-2-2"></div>
+                        <div class="token" id="token-2-3"></div>
+                    </div>
+                </div>
+
+                <div class="home home-blue">
+                    <div class="home-inner">
+                        <div class="token" id="token-3-0"></div>
+                        <div class="token" id="token-3-1"></div>
+                        <div class="token" id="token-3-2"></div>
+                        <div class="token" id="token-3-3"></div>
+                    </div>
+                </div>
+
+                <div id="trackCells" class="track-cells"></div>
+
+                <div class="board-center">
+                    <span>HIDAMES</span>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- DICE PANEL -->
+        <aside class="dice-panel">
+
+            <h2 id="turnName">Player 1</h2>
+            <p id="turnSubtitle">Red player's move</p>
+
+            <button id="dice" class="dice" type="button" aria-label="Roll dice">
+                <span class="dice-face"></span>
+            </button>
+
+            <button id="rollBtn" class="roll-btn" type="button">
+                ROLL DICE
+            </button>
+
+            <p id="diceMessage" aria-live="polite">
+                Roll the dice to begin.
+            </p>
+
+            <p class="last-roll">
+                Last Roll: <strong id="lastRoll">—</strong>
+            </p>
+
+        </aside>
+
+        <!-- PLAYER PANEL -->
+        <section class="player-panel">
+
+            <h3>Players</h3>
+
+            <div class="player-card" id="player-0">
+                <span>🔴</span>
+                <strong id="playerNameDisplay0">Player 1</strong>
+                <button class="player-roll-btn" id="playerRollBtn0" data-player-roll="0" type="button">
+                    Roll
+                </button>
+            </div>
+
+            <div class="player-card" id="player-1">
+                <span>🟢</span>
+                <strong id="playerNameDisplay1">Player 2</strong>
+                <button class="player-roll-btn" id="playerRollBtn1" data-player-roll="1" type="button">
+                    Roll
+                </button>
+            </div>
+
+            <div class="player-card" id="player-2">
+                <span>🟡</span>
+                <strong id="playerNameDisplay2">Player 3</strong>
+                <button class="player-roll-btn" id="playerRollBtn2" data-player-roll="2" type="button">
+                    Roll
+                </button>
+            </div>
+
+            <div class="player-card" id="player-3">
+                <span>🔵</span>
+                <strong id="playerNameDisplay3">Player 4</strong>
+                <button class="player-roll-btn" id="playerRollBtn3" data-player-roll="3" type="button">
+                    Roll
+                </button>
+            </div>
 
         </section>
 
-        <!-- FOOTER -->
-        <footer class="game-footer">
+        <div class="game-footer">
+            <button id="backToMenuBtn" type="button">
+                Back to Menu
+            </button>
+        </div>
 
-            <span class="footer-brand">
-                HID<span>AMES</span>
-            </span>
+    </section>
 
-            <p>Made for players. Built for fun.</p>
+    <!-- WINNER SCREEN -->
+    <section id="winnerScreen" class="winner-screen" hidden>
+        <div class="winner-content">
+            <div class="winner-trophy">🏆</div>
+            <h2 id="winnerTitle">Congratulations!</h2>
+            <p id="winnerMessage">We have a winner!</p>
+            <h3 id="winnerName">Player 1</h3>
 
-        </footer>
+            <div class="winner-actions">
+                <button id="playAgainBtn" class="primary-btn" type="button">
+                    Play Again
+                </button>
 
-    </main>
+                <button id="winnerMenuBtn" class="secondary-btn" type="button">
+                    Back to Menu
+                </button>
+            </div>
+        </div>
+    </section>
 
-    <!-- GAME JAVASCRIPT -->
-    <script src="ludo.js"></script>
+</main>
 
+<footer class="footer">
+    <p>© 2026 HIDAMES. Let the games begin!</p>
+</footer>
+
+<script src="ludo.js"></script>
 </body>
 </html>
