@@ -1,863 +1,183 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#0c0c0e">
-    <meta name="description" content="Play HIDAMES Ludo with friends, family or computer players.">
-
-    <title>HIDAMES - Ludo</title>
-
-    <link rel="stylesheet" href="ludo.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Ludo King | Hidames</title>
+  <link rel="stylesheet" href="ludo.css">
 </head>
-
 <body>
+  <!-- Ambient Gold Glow -->
+  <div class="ambient-glow"></div>
 
-<!-- HEADER -->
-<header class="topbar">
+  <!-- Top Navigation Header -->
+  <header class="ludo-header">
+    <div class="header-left">
+      <a href="exploregames.html" class="back-btn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"></polyline></svg>
+        <span>Games</span>
+      </a>
+    </div>
+    <div class="header-center">
+      <div class="logo">HID<span>AMES</span></div>
+      <div class="game-tag">LUDO KING EDITION</div>
+    </div>
+    <div class="header-right">
+      <button id="soundToggleBtn" class="icon-btn" title="Toggle Sound">🔊</button>
+      <button id="restartBtn" class="icon-btn" title="Restart Game">🔄</button>
+    </div>
+  </header>
 
-    <a href="exploregames.html" class="back-link">
-        ← Games
-    </a>
-
-    <h1 class="brand-logo">
-        HID<span>AMES</span>
-        <small>LUDO</small>
-    </h1>
-
-</header>
-
-
-<main class="ludo-container">
-
-    <!-- =================================
-         GAME SETUP
-    ================================== -->
-
-    <section id="setupScreen" class="setup-screen">
-
-        <div class="setup-heading">
-            <h2>Let's Play Ludo!</h2>
-            <p>Choose your game mode and get ready to play.</p>
+  <!-- Main Game Stage -->
+  <main class="game-stage">
+    
+    <!-- Top Player Row -->
+    <div class="players-row top-row">
+      <!-- RED PLAYER POD (Top-Left) -->
+      <div class="player-pod" id="pod-red" data-color="red">
+        <div class="avatar-ring">
+          <div class="avatar red-avatar">🔴</div>
+          <div class="timer-ring"></div>
         </div>
-
-
-        <!-- GAME MODE -->
-
-        <section class="setup-section">
-
-            <h3>1. Choose Game Mode</h3>
-
-            <div class="mode-grid">
-
-                <button
-                    class="mode-card"
-                    data-mode="computer"
-                    type="button"
-                    aria-pressed="false"
-                >
-                    <span class="mode-icon">🤖</span>
-                    <strong>Play with Computer</strong>
-                    <small>Play against computer players</small>
-                </button>
-
-
-                <button
-                    class="mode-card"
-                    data-mode="local"
-                    type="button"
-                    aria-pressed="false"
-                >
-                    <span class="mode-icon">📱</span>
-                    <strong>Same Device</strong>
-                    <small>Play together on one device</small>
-                </button>
-
-
-                <button
-                    class="mode-card"
-                    data-mode="online"
-                    type="button"
-                    aria-pressed="false"
-                >
-                    <span class="mode-icon">🌐</span>
-                    <strong>Online Multiplayer</strong>
-                    <small>Play with friends online</small>
-                </button>
-
-            </div>
-
-        </section>
-
-
-        <!-- MATCH TYPE -->
-
-        <section id="matchSection" class="setup-section" hidden>
-
-            <h3>2. Choose Match Type</h3>
-
-            <div class="match-grid">
-
-                <button
-                    class="match-option"
-                    data-match="individual-2"
-                    type="button"
-                    aria-pressed="false"
-                >
-                    Individual · 2 Players
-                </button>
-
-                <button
-                    class="match-option"
-                    data-match="individual-3"
-                    type="button"
-                    aria-pressed="false"
-                >
-                    Individual · 3 Players
-                </button>
-
-                <button
-                    class="match-option"
-                    data-match="individual-4"
-                    type="button"
-                    aria-pressed="false"
-                >
-                    Individual · 4 Players
-                </button>
-
-                <button
-                    class="match-option"
-                    data-match="1v1"
-                    type="button"
-                    aria-pressed="false"
-                >
-                    Teams · 1 vs 1
-                </button>
-
-                <button
-                    class="match-option"
-                    data-match="2v2"
-                    type="button"
-                    aria-pressed="false"
-                >
-                    Teams · 2 vs 2
-                </button>
-
-                <button
-                    class="match-option"
-                    data-match="1v2"
-                    type="button"
-                    aria-pressed="false"
-                >
-                    Teams · 1 vs 2
-                </button>
-
-                <button
-                    class="match-option"
-                    data-match="1v3"
-                    type="button"
-                    aria-pressed="false"
-                >
-                    Teams · 1 vs 3
-                </button>
-
-            </div>
-
-        </section>
-
-
-        <!-- ONLINE ROOM -->
-
-        <section id="onlineSetup" class="setup-section" hidden>
-
-            <h3>3. Online Room</h3>
-
-            <div class="online-actions">
-
-                <button
-                    id="createRoomBtn"
-                    class="primary-btn"
-                    type="button"
-                >
-                    Create Private Room
-                </button>
-
-                <div class="room-divider">OR</div>
-
-                <label for="roomCodeInput">
-                    Enter Room Code
-                </label>
-
-                <input
-                    id="roomCodeInput"
-                    type="text"
-                    maxlength="8"
-                    placeholder="Enter room code"
-                    autocomplete="off"
-                >
-
-                <button
-                    id="joinRoomBtn"
-                    class="secondary-btn"
-                    type="button"
-                >
-                    Join Room
-                </button>
-
-            </div>
-
-
-            <div id="roomDetails" class="room-details" hidden>
-
-                <p>Your Room Code</p>
-
-                <strong id="displayRoomCode">------</strong>
-
-                <button
-                    id="copyRoomCodeBtn"
-                    type="button"
-                >
-                    Copy Room Code
-                </button>
-
-                <p>Invitation Link</p>
-
-                <input
-                    id="inviteLink"
-                    type="text"
-                    readonly
-                    aria-label="Invitation link"
-                >
-
-                <button
-                    id="copyInviteLinkBtn"
-                    type="button"
-                >
-                    Copy Invitation Link
-                </button>
-
-            </div>
-
-
-            <div
-                id="onlineStatus"
-                class="online-status"
-                role="status"
-                aria-live="polite"
-            >
-                Online multiplayer is currently unavailable.
-                A real-time backend connection is required.
-            </div>
-
-        </section>
-
-
-        <!-- PLAYER NAMES AND COLOURS -->
-
-        <section id="nameSection" class="setup-section" hidden>
-
-            <h3>4. Player Names & Colours</h3>
-
-            <p>
-                Choose a name and a unique colour for each player.
-            </p>
-
-
-            <div class="name-inputs">
-
-                <!-- PLAYER 1 -->
-
-                <div class="name-field" data-player-name="0">
-
-                    <label for="playerName0">
-                        Player 1 Name
-                    </label>
-
-                    <input
-                        id="playerName0"
-                        type="text"
-                        maxlength="15"
-                        placeholder="Player 1"
-                        autocomplete="off"
-                    >
-
-                    <label for="playerColor0">
-                        Player 1 Colour
-                    </label>
-
-                    <select
-                        id="playerColor0"
-                        class="player-color-select"
-                        data-player-color="0"
-                    >
-                        <option value="red" selected>🔴 Red</option>
-                        <option value="green">🟢 Green</option>
-                        <option value="yellow">🟡 Yellow</option>
-                        <option value="blue">🔵 Blue</option>
-                    </select>
-
-                </div>
-
-
-                <!-- PLAYER 2 -->
-
-                <div class="name-field" data-player-name="1">
-
-                    <label for="playerName1">
-                        Player 2 Name
-                    </label>
-
-                    <input
-                        id="playerName1"
-                        type="text"
-                        maxlength="15"
-                        placeholder="Player 2"
-                        autocomplete="off"
-                    >
-
-                    <label for="playerColor1">
-                        Player 2 Colour
-                    </label>
-
-                    <select
-                        id="playerColor1"
-                        class="player-color-select"
-                        data-player-color="1"
-                    >
-                        <option value="green" selected>🟢 Green</option>
-                        <option value="red">🔴 Red</option>
-                        <option value="yellow">🟡 Yellow</option>
-                        <option value="blue">🔵 Blue</option>
-                    </select>
-
-                </div>
-
-
-                <!-- PLAYER 3 -->
-
-                <div class="name-field" data-player-name="2">
-
-                    <label for="playerName2">
-                        Player 3 Name
-                    </label>
-
-                    <input
-                        id="playerName2"
-                        type="text"
-                        maxlength="15"
-                        placeholder="Player 3"
-                        autocomplete="off"
-                    >
-
-                    <label for="playerColor2">
-                        Player 3 Colour
-                    </label>
-
-                    <select
-                        id="playerColor2"
-                        class="player-color-select"
-                        data-player-color="2"
-                    >
-                        <option value="yellow" selected>🟡 Yellow</option>
-                        <option value="red">🔴 Red</option>
-                        <option value="green">🟢 Green</option>
-                        <option value="blue">🔵 Blue</option>
-                    </select>
-
-                </div>
-
-
-                <!-- PLAYER 4 -->
-
-                <div class="name-field" data-player-name="3">
-
-                    <label for="playerName3">
-                        Player 4 Name
-                    </label>
-
-                    <input
-                        id="playerName3"
-                        type="text"
-                        maxlength="15"
-                        placeholder="Player 4"
-                        autocomplete="off"
-                    >
-
-                    <label for="playerColor3">
-                        Player 4 Colour
-                    </label>
-
-                    <select
-                        id="playerColor3"
-                        class="player-color-select"
-                        data-player-color="3"
-                    >
-                        <option value="blue" selected>🔵 Blue</option>
-                        <option value="red">🔴 Red</option>
-                        <option value="green">🟢 Green</option>
-                        <option value="yellow">🟡 Yellow</option>
-                    </select>
-
-                </div>
-
-            </div>
-
-
-            <p
-                id="colorMessage"
-                role="status"
-                aria-live="polite"
-            ></p>
-
-
-            <button
-                id="skipNamesBtn"
-                class="text-btn"
-                type="button"
-            >
-                Skip Names
-            </button>
-
-        </section>
-
-
-        <!-- TEAM ASSIGNMENT -->
-
-        <section id="teamSection" class="setup-section" hidden>
-
-            <h3>5. Assign Teams</h3>
-
-            <p>
-                Teammates work together and cannot capture each
-                other's tokens.
-            </p>
-
-            <div id="teamAssignment" class="team-assignment">
-
-                <div class="team-card team-a">
-
-                    <h4>Team A</h4>
-
-                    <div id="teamAPlayers"></div>
-
-                </div>
-
-
-                <div class="team-card team-b">
-
-                    <h4>Team B</h4>
-
-                    <div id="teamBPlayers"></div>
-
-                </div>
-
-            </div>
-
-        </section>
-
-
-        <!-- SETUP FOOTER -->
-
-        <div class="setup-footer">
-
-            <p
-                id="setupMessage"
-                role="status"
-                aria-live="polite"
-            >
-                Select a game mode to continue.
-            </p>
-
-            <button
-                id="startGameBtn"
-                class="start-game-btn"
-                type="button"
-                disabled
-            >
-                Start Game
-            </button>
-
+        <div class="pod-info">
+          <div class="player-name">Player 1</div>
+          <div class="status-badge">WAITING</div>
         </div>
-
-    </section>
-
-
-
-    <!-- =================================
-         GAME AREA
-    ================================== -->
-
-    <section id="gameLayout" class="game-layout" hidden>
-
-
-        <!-- BOARD AREA -->
-
-        <div class="board-section">
-
-            <div class="board-heading">
-                <h2>Ludo Board</h2>
-            </div>
-
-
-            <div id="ludoBoard" class="ludo-board">
-
-
-                <!-- RED HOME -->
-
-                <div class="home home-red">
-
-                    <div class="home-inner">
-
-                        <div class="token" id="token-0-0"></div>
-                        <div class="token" id="token-0-1"></div>
-                        <div class="token" id="token-0-2"></div>
-                        <div class="token" id="token-0-3"></div>
-
-                    </div>
-
-                </div>
-
-
-                <!-- GREEN HOME -->
-
-                <div class="home home-green">
-
-                    <div class="home-inner">
-
-                        <div class="token" id="token-1-0"></div>
-                        <div class="token" id="token-1-1"></div>
-                        <div class="token" id="token-1-2"></div>
-                        <div class="token" id="token-1-3"></div>
-
-                    </div>
-
-                </div>
-
-
-                <!-- YELLOW HOME -->
-
-                <div class="home home-yellow">
-
-                    <div class="home-inner">
-
-                        <div class="token" id="token-2-0"></div>
-                        <div class="token" id="token-2-1"></div>
-                        <div class="token" id="token-2-2"></div>
-                        <div class="token" id="token-2-3"></div>
-
-                    </div>
-
-                </div>
-
-
-                <!-- BLUE HOME -->
-
-                <div class="home home-blue">
-
-                    <div class="home-inner">
-
-                        <div class="token" id="token-3-0"></div>
-                        <div class="token" id="token-3-1"></div>
-                        <div class="token" id="token-3-2"></div>
-                        <div class="token" id="token-3-3"></div>
-
-                    </div>
-
-                </div>
-
-
-                <!-- TRACK CELLS -->
-
-                <div
-                    id="trackCells"
-                    class="track-cells"
-                ></div>
-
-
-                <!-- BOARD CENTRE -->
-
-                <div class="board-center">
-
-                    <span>HID<span>AMES</span></span>
-
-                </div>
-
-            </div>
-
+        <div class="dice-box" id="dice-red">
+          <div class="dice">
+            <div class="pip-grid pip-1"><span></span></div>
+          </div>
+          <span class="dice-cue">ROLL</span>
         </div>
-
-
-
-        <!-- DICE PANEL -->
-
-        <aside class="dice-panel">
-
-            <h2 id="turnName">Player 1</h2>
-
-            <p id="turnSubtitle">Red player's move</p>
-
-
-            <button
-                id="dice"
-                class="dice"
-                type="button"
-                aria-label="Roll dice"
-            >
-                <span class="dice-face" aria-hidden="true">⚀</span>
-            </button>
-
-
-            <button
-                id="rollBtn"
-                class="roll-btn"
-                type="button"
-            >
-                ROLL DICE
-            </button>
-
-
-            <p
-                id="diceMessage"
-                role="status"
-                aria-live="polite"
-            >
-                Roll the dice to begin.
-            </p>
-
-
-            <p class="last-roll">
-                Last Roll:
-                <strong id="lastRoll">—</strong>
-            </p>
-
-
-            <p
-                id="openingRollStatus"
-                role="status"
-                aria-live="polite"
-            ></p>
-
-        </aside>
-
-
-
-        <!-- PLAYER PANELS -->
-
-        <section class="player-panel">
-
-            <h3>Players</h3>
-
-
-            <!-- PLAYER 1 -->
-
-            <div
-                class="player-card"
-                id="player-0"
-                data-player-card="0"
-            >
-
-                <span class="player-color-icon">🔴</span>
-
-                <strong id="playerNameDisplay0">Player 1</strong>
-
-                <span
-                    class="player-turn-status"
-                    id="playerStatus0"
-                ></span>
-
-                <button
-                    class="player-roll-btn"
-                    id="playerRollBtn0"
-                    data-player-roll="0"
-                    type="button"
-                >
-                    Roll
-                </button>
-
-            </div>
-
-
-            <!-- PLAYER 2 -->
-
-            <div
-                class="player-card"
-                id="player-1"
-                data-player-card="1"
-            >
-
-                <span class="player-color-icon">🟢</span>
-
-                <strong id="playerNameDisplay1">Player 2</strong>
-
-                <span
-                    class="player-turn-status"
-                    id="playerStatus1"
-                ></span>
-
-                <button
-                    class="player-roll-btn"
-                    id="playerRollBtn1"
-                    data-player-roll="1"
-                    type="button"
-                >
-                    Roll
-                </button>
-
-            </div>
-
-
-            <!-- PLAYER 3 -->
-
-            <div
-                class="player-card"
-                id="player-2"
-                data-player-card="2"
-            >
-
-                <span class="player-color-icon">🟡</span>
-
-                <strong id="playerNameDisplay2">Player 3</strong>
-
-                <span
-                    class="player-turn-status"
-                    id="playerStatus2"
-                ></span>
-
-                <button
-                    class="player-roll-btn"
-                    id="playerRollBtn2"
-                    data-player-roll="2"
-                    type="button"
-                >
-                    Roll
-                </button>
-
-            </div>
-
-
-            <!-- PLAYER 4 -->
-
-            <div
-                class="player-card"
-                id="player-3"
-                data-player-card="3"
-            >
-
-                <span class="player-color-icon">🔵</span>
-
-                <strong id="playerNameDisplay3">Player 4</strong>
-
-                <span
-                    class="player-turn-status"
-                    id="playerStatus3"
-                ></span>
-
-                <button
-                    class="player-roll-btn"
-                    id="playerRollBtn3"
-                    data-player-roll="3"
-                    type="button"
-                >
-                    Roll
-                </button>
-
-            </div>
-
-        </section>
-
-
-
-        <!-- GAME STATUS -->
-
-        <div
-            id="gameStatus"
-            class="game-status"
-            role="status"
-            aria-live="polite"
-        ></div>
-
-
-
-        <!-- GAME FOOTER -->
-
-        <div class="game-footer">
-
-            <button
-                id="backToMenuBtn"
-                type="button"
-            >
-                Back to Menu
-            </button>
-
+      </div>
+
+      <!-- Turn Notice Banner in between -->
+      <div class="turn-banner" id="turnBanner">
+        <span id="turnText">SELECT MODE TO START</span>
+      </div>
+
+      <!-- GREEN PLAYER POD (Top-Right) -->
+      <div class="player-pod" id="pod-green" data-color="green">
+        <div class="dice-box" id="dice-green">
+          <div class="dice">
+            <div class="pip-grid pip-1"><span></span></div>
+          </div>
+          <span class="dice-cue">ROLL</span>
         </div>
-
-    </section>
-
-
-
-    <!-- =================================
-         WINNER SCREEN
-    ================================== -->
-
-    <section
-        id="winnerScreen"
-        class="winner-screen"
-        hidden
-    >
-
-        <div class="winner-content">
-
-            <div class="winner-trophy">🏆</div>
-
-            <h2 id="winnerTitle">Congratulations!</h2>
-
-            <p id="winnerMessage">We have a winner!</p>
-
-            <h3 id="winnerName">Player 1</h3>
-
-
-            <div class="winner-actions">
-
-                <button
-                    id="playAgainBtn"
-                    class="primary-btn"
-                    type="button"
-                >
-                    Play Again
-                </button>
-
-                <button
-                    id="winnerMenuBtn"
-                    class="secondary-btn"
-                    type="button"
-                >
-                    Back to Menu
-                </button>
-
-            </div>
-
+        <div class="pod-info text-right">
+          <div class="player-name">Player 2</div>
+          <div class="status-badge">WAITING</div>
         </div>
+        <div class="avatar-ring">
+          <div class="avatar green-avatar">🟢</div>
+          <div class="timer-ring"></div>
+        </div>
+      </div>
+    </div>
 
-    </section>
+    <!-- Center 15x15 Ludo Board Container -->
+    <div class="board-wrapper">
+      <div class="ludo-board" id="ludoBoard">
+        <!-- 15x15 grid cells injected dynamically via JavaScript -->
+        
+        <!-- Center Finish Area Trophy -->
+        <div class="center-trophy">
+          <div class="crown-icon">👑</div>
+          <div class="center-brand">HID<span>AMES</span></div>
+        </div>
+      </div>
+    </div>
 
-</main>
+    <!-- Bottom Player Row -->
+    <div class="players-row bottom-row">
+      <!-- BLUE PLAYER POD (Bottom-Left) -->
+      <div class="player-pod" id="pod-blue" data-color="blue">
+        <div class="avatar-ring">
+          <div class="avatar blue-avatar">🔵</div>
+          <div class="timer-ring"></div>
+        </div>
+        <div class="pod-info">
+          <div class="player-name">Player 4</div>
+          <div class="status-badge">WAITING</div>
+        </div>
+        <div class="dice-box" id="dice-blue">
+          <div class="dice">
+            <div class="pip-grid pip-1"><span></span></div>
+          </div>
+          <span class="dice-cue">ROLL</span>
+        </div>
+      </div>
 
+      <!-- Live Notification Toast -->
+      <div class="event-toast" id="eventToast"></div>
 
+      <!-- YELLOW PLAYER POD (Bottom-Right) -->
+      <div class="player-pod" id="pod-yellow" data-color="yellow">
+        <div class="dice-box" id="dice-yellow">
+          <div class="dice">
+            <div class="pip-grid pip-1"><span></span></div>
+          </div>
+          <span class="dice-cue">ROLL</span>
+        </div>
+        <div class="pod-info text-right">
+          <div class="player-name">Player 3</div>
+          <div class="status-badge">WAITING</div>
+        </div>
+        <div class="avatar-ring">
+          <div class="avatar yellow-avatar">🟡</div>
+          <div class="timer-ring"></div>
+        </div>
+      </div>
+    </div>
 
-<!-- FOOTER -->
+  </main>
 
-<footer class="footer">
+  <!-- Mode Selector Modal (Shown on Load) -->
+  <div class="modal-overlay" id="modeModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="logo">HID<span>AMES</span></div>
+        <h2>LUDO KING</h2>
+        <p>Choose your game mode to begin</p>
+      </div>
+      <div class="mode-options">
+        <button class="mode-btn" onclick="startLudoGame(2, false)">
+          <div class="mode-icon">👥</div>
+          <div class="mode-meta">
+            <h3>2 Players (Pass & Play)</h3>
+            <p>Red vs Yellow across the board</p>
+          </div>
+        </button>
 
-    <p>© 2026 HIDAMES. Let the games begin!</p>
+        <button class="mode-btn highlighted" onclick="startLudoGame(4, false)">
+          <div class="mode-icon">👨‍👩‍👧‍👦</div>
+          <div class="mode-meta">
+            <h3>4 Players (Classic)</h3>
+            <p>Red, Green, Yellow, Blue battle</p>
+          </div>
+        </button>
 
-</footer>
+        <button class="mode-btn" onclick="startLudoGame(2, true)">
+          <div class="mode-icon">🤖</div>
+          <div class="mode-meta">
+            <h3>Vs Computer (AI)</h3>
+            <p>Play as Red against the Hidames AI</p>
+          </div>
+        </button>
+      </div>
+    </div>
+  </div>
 
+  <!-- Winner Victory Modal -->
+  <div class="modal-overlay hidden" id="winnerModal">
+    <div class="modal-card victory-card">
+      <div class="trophy-bounce">🏆</div>
+      <h2 id="winnerText">VICTORY!</h2>
+      <p id="winnerSub">Congratulations to the Champion</p>
+      <button class="action-btn" onclick="location.reload()">PLAY AGAIN</button>
+    </div>
+  </div>
 
-
-<!-- JAVASCRIPT -->
-
-<script src="ludo.js"></script>
-
+  <script src="ludo.js"></script>
 </body>
 </html>
