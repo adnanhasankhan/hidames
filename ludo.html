@@ -3,181 +3,322 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Ludo King | Hidames</title>
+  <meta name="description" content="HIDAMES Ludo King Edition - Premium browser-based Ludo game with multi-player, teams, AI, and online modes.">
+  <title>Ludo King | HIDAMES</title>
+  
+  <!-- Supabase JS Client for Realtime Online Multiplayer -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
+  <!-- Stylesheet -->
   <link rel="stylesheet" href="ludo.css">
 </head>
 <body>
-  <!-- Ambient Gold Glow -->
+
+  <!-- Ambient Gold Glow Background Effect -->
   <div class="ambient-glow"></div>
 
-  <!-- Top Navigation Header -->
+  <!-- Header Navigation -->
   <header class="ludo-header">
     <div class="header-left">
-      <a href="exploregames.html" class="back-btn">
+      <a href="exploregames.html" class="back-btn" title="Back to Games">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"></polyline></svg>
         <span>Games</span>
       </a>
     </div>
+
     <div class="header-center">
       <div class="logo">HID<span>AMES</span></div>
       <div class="game-tag">LUDO KING EDITION</div>
     </div>
+
     <div class="header-right">
+      <button id="rulesBtn" class="icon-btn" title="Game Rules & Guide">📜</button>
       <button id="soundToggleBtn" class="icon-btn" title="Toggle Sound">🔊</button>
-      <button id="restartBtn" class="icon-btn" title="Restart Game">🔄</button>
+      <button id="restartBtn" class="icon-btn" title="New Game / Mode">🔄</button>
     </div>
   </header>
 
+  <!-- Live Match Status Banner -->
+  <div class="match-info-bar">
+    <div class="mode-badge" id="matchModeBadge">4 PLAYERS • CLASSIC</div>
+    <div class="turn-announcement" id="turnAnnouncement">ROLL TO START</div>
+    <div class="room-pill hidden" id="onlineRoomPill">
+      <span class="room-label">ROOM:</span>
+      <span class="room-code" id="activeRoomCodeDisplay">------</span>
+      <button class="copy-room-btn" id="copyRoomCodeBtn" title="Copy Room Link">📋</button>
+    </div>
+  </div>
+
   <!-- Main Game Stage -->
   <main class="game-stage">
-    
-    <!-- Top Player Row -->
+
+    <!-- Top Row Player Pods (Red on Left, Green on Right) -->
     <div class="players-row top-row">
       <!-- RED PLAYER POD (Top-Left) -->
       <div class="player-pod" id="pod-red" data-color="red">
         <div class="avatar-ring">
-          <div class="avatar red-avatar">🔴</div>
-          <div class="timer-ring"></div>
+          <div class="avatar-inner red-avatar">🔴</div>
+          <div class="turn-pulse-ring"></div>
         </div>
-        <div class="pod-info">
-          <div class="player-name">Player 1</div>
-          <div class="status-badge">WAITING</div>
-        </div>
-        <div class="dice-box" id="dice-red">
-          <div class="dice">
-            <div class="pip-grid pip-1"><span></span></div>
+        <div class="pod-details">
+          <div class="player-title">
+            <span class="p-name" id="name-red">Player 1</span>
+            <span class="team-tag" id="team-red"></span>
           </div>
-          <span class="dice-cue">ROLL</span>
+          <div class="p-status" id="status-red">WAITING</div>
+        </div>
+        <div class="dice-box" id="dice-red" title="Roll Dice">
+          <div class="dice" id="dice-face-red">
+            <div class="pip-grid pip-1"><span class="pip"></span></div>
+          </div>
+          <span class="dice-label">ROLL</span>
         </div>
       </div>
 
-      <!-- Turn Notice Banner in between -->
-      <div class="turn-banner" id="turnBanner">
-        <span id="turnText">SELECT MODE TO START</span>
-      </div>
+      <!-- Live Center Event Toast (Safe, Knockout, Extra Turn, 3 Sixes) -->
+      <div class="event-toast" id="eventToast"></div>
 
       <!-- GREEN PLAYER POD (Top-Right) -->
       <div class="player-pod" id="pod-green" data-color="green">
-        <div class="dice-box" id="dice-green">
-          <div class="dice">
-            <div class="pip-grid pip-1"><span></span></div>
+        <div class="dice-box" id="dice-green" title="Roll Dice">
+          <div class="dice" id="dice-face-green">
+            <div class="pip-grid pip-1"><span class="pip"></span></div>
           </div>
-          <span class="dice-cue">ROLL</span>
+          <span class="dice-label">ROLL</span>
         </div>
-        <div class="pod-info text-right">
-          <div class="player-name">Player 2</div>
-          <div class="status-badge">WAITING</div>
+        <div class="pod-details text-right">
+          <div class="player-title">
+            <span class="p-name" id="name-green">Player 2</span>
+            <span class="team-tag" id="team-green"></span>
+          </div>
+          <div class="p-status" id="status-green">WAITING</div>
         </div>
         <div class="avatar-ring">
-          <div class="avatar green-avatar">🟢</div>
-          <div class="timer-ring"></div>
+          <div class="avatar-inner green-avatar">🟢</div>
+          <div class="turn-pulse-ring"></div>
         </div>
       </div>
     </div>
 
-    <!-- Center 15x15 Ludo Board Container -->
+    <!-- Center Ludo Board (15x15 CSS Grid) -->
     <div class="board-wrapper">
       <div class="ludo-board" id="ludoBoard">
-        <!-- 15x15 grid cells injected dynamically via JavaScript -->
-        
-        <!-- Center Finish Area Trophy -->
-        <div class="center-trophy">
+        <!-- 4 Quadrants, Home Runways, Star Spots, and Center Trophy injected by ludo.js -->
+        <div class="center-trophy" id="centerTrophy">
           <div class="crown-icon">👑</div>
-          <div class="center-brand">HID<span>AMES</span></div>
+          <div class="trophy-brand">HID<span>AMES</span></div>
         </div>
       </div>
     </div>
 
-    <!-- Bottom Player Row -->
+    <!-- Bottom Row Player Pods (Blue on Left, Yellow on Right) -->
     <div class="players-row bottom-row">
       <!-- BLUE PLAYER POD (Bottom-Left) -->
       <div class="player-pod" id="pod-blue" data-color="blue">
         <div class="avatar-ring">
-          <div class="avatar blue-avatar">🔵</div>
-          <div class="timer-ring"></div>
+          <div class="avatar-inner blue-avatar">🔵</div>
+          <div class="turn-pulse-ring"></div>
         </div>
-        <div class="pod-info">
-          <div class="player-name">Player 4</div>
-          <div class="status-badge">WAITING</div>
-        </div>
-        <div class="dice-box" id="dice-blue">
-          <div class="dice">
-            <div class="pip-grid pip-1"><span></span></div>
+        <div class="pod-details">
+          <div class="player-title">
+            <span class="p-name" id="name-blue">Player 4</span>
+            <span class="team-tag" id="team-blue"></span>
           </div>
-          <span class="dice-cue">ROLL</span>
+          <div class="p-status" id="status-blue">WAITING</div>
+        </div>
+        <div class="dice-box" id="dice-blue" title="Roll Dice">
+          <div class="dice" id="dice-face-blue">
+            <div class="pip-grid pip-1"><span class="pip"></span></div>
+          </div>
+          <span class="dice-label">ROLL</span>
         </div>
       </div>
 
-      <!-- Live Notification Toast -->
-      <div class="event-toast" id="eventToast"></div>
+      <!-- Quick Control Action Buttons -->
+      <div class="stage-footer-actions">
+        <button id="fastModeToggle" class="subtle-btn" title="Fast Play Animation">⚡ FAST</button>
+      </div>
 
       <!-- YELLOW PLAYER POD (Bottom-Right) -->
       <div class="player-pod" id="pod-yellow" data-color="yellow">
-        <div class="dice-box" id="dice-yellow">
-          <div class="dice">
-            <div class="pip-grid pip-1"><span></span></div>
+        <div class="dice-box" id="dice-yellow" title="Roll Dice">
+          <div class="dice" id="dice-face-yellow">
+            <div class="pip-grid pip-1"><span class="pip"></span></div>
           </div>
-          <span class="dice-cue">ROLL</span>
+          <span class="dice-label">ROLL</span>
         </div>
-        <div class="pod-info text-right">
-          <div class="player-name">Player 3</div>
-          <div class="status-badge">WAITING</div>
+        <div class="pod-details text-right">
+          <div class="player-title">
+            <span class="p-name" id="name-yellow">Player 3</span>
+            <span class="team-tag" id="team-yellow"></span>
+          </div>
+          <div class="p-status" id="status-yellow">WAITING</div>
         </div>
         <div class="avatar-ring">
-          <div class="avatar yellow-avatar">🟡</div>
-          <div class="timer-ring"></div>
+          <div class="avatar-inner yellow-avatar">🟡</div>
+          <div class="turn-pulse-ring"></div>
         </div>
       </div>
     </div>
 
   </main>
 
-  <!-- Mode Selector Modal (Shown on Load) -->
-  <div class="modal-overlay" id="modeModal">
-    <div class="modal-card">
-      <div class="modal-header">
+  <!-- =========================================================================
+       MODAL 1: GAME SETUP & LOBBY (CUSTOM PLAYERS, COLORS, TEAMS, MODES)
+       ========================================================================= -->
+  <div class="modal-overlay" id="setupModal">
+    <div class="modal-card setup-card">
+      <div class="modal-brand">
         <div class="logo">HID<span>AMES</span></div>
-        <h2>LUDO KING</h2>
-        <p>Choose your game mode to begin</p>
+        <h2>LUDO KING LOBBY</h2>
+        <p>Configure your match, customize names, and choose game rules</p>
       </div>
-      <div class="mode-options">
-        <button class="mode-btn" onclick="startLudoGame(2, false)">
-          <div class="mode-icon">👥</div>
-          <div class="mode-meta">
-            <h3>2 Players (Pass & Play)</h3>
-            <p>Red vs Yellow across the board</p>
-          </div>
-        </button>
 
-        <button class="mode-btn highlighted" onclick="startLudoGame(4, false)">
-          <div class="mode-icon">👨‍👩‍👧‍👦</div>
-          <div class="mode-meta">
-            <h3>4 Players (Classic)</h3>
-            <p>Red, Green, Yellow, Blue battle</p>
-          </div>
-        </button>
+      <!-- Mode Selector Tabs -->
+      <div class="tab-group">
+        <button class="tab-btn active" data-tab="local" onclick="switchSetupTab('local')">Same Device</button>
+        <button class="tab-btn" data-tab="ai" onclick="switchSetupTab('ai')">Vs Computer</button>
+        <button class="tab-btn" data-tab="online" onclick="switchSetupTab('online')">Online Rooms</button>
+      </div>
 
-        <button class="mode-btn" onclick="startLudoGame(2, true)">
-          <div class="mode-icon">🤖</div>
-          <div class="mode-meta">
-            <h3>Vs Computer (AI)</h3>
-            <p>Play as Red against the Hidames AI</p>
+      <!-- Format & Teams Selector -->
+      <div class="form-section">
+        <label class="form-label">Match Format:</label>
+        <div class="format-chips" id="formatChips">
+          <button class="chip-btn active" data-format="2" onclick="setMatchFormat('2')">2 Players</button>
+          <button class="chip-btn" data-format="3" onclick="setMatchFormat('3')">3 Players</button>
+          <button class="chip-btn" data-format="4" onclick="setMatchFormat('4')">4 Players</button>
+          <button class="chip-btn" data-format="2v2" onclick="setMatchFormat('2v2')">2v2 Teams</button>
+          <button class="chip-btn" data-format="1v2" onclick="setMatchFormat('1v2')">1v2 Team</button>
+          <button class="chip-btn" data-format="1v3" onclick="setMatchFormat('1v3')">1v3 Team</button>
+        </div>
+      </div>
+
+      <!-- Player Customization Roster -->
+      <div class="form-section">
+        <label class="form-label">Player Roster & Color Selection:</label>
+        <div class="roster-grid" id="rosterGrid">
+          <!-- Dynamically populated roster slots for Player 1, 2, 3, 4 -->
+        </div>
+      </div>
+
+      <!-- Rules & Settings -->
+      <div class="form-section rules-config">
+        <label class="checkbox-option">
+          <input type="checkbox" id="blockadeToggle" checked>
+          <span>Enable Blockade Rule (2 pawns on same tile block path)</span>
+        </label>
+        <label class="checkbox-option">
+          <input type="checkbox" id="openingRoundToggle" checked>
+          <span>Opening Dice Round (Highest roll starts first)</span>
+        </label>
+      </div>
+
+      <!-- Online Room Section (Only visible under Online Tab) -->
+      <div class="form-section online-setup hidden" id="onlineSection">
+        <div class="online-panel">
+          <div class="online-inputs">
+            <input type="text" id="joinRoomCodeInput" placeholder="Enter 6-digit Room Code" maxlength="6">
+            <button class="action-btn-small" onclick="joinOnlineRoom()">Join Room</button>
           </div>
-        </button>
+          <div class="divider-text">OR</div>
+          <button class="action-btn-gold w-full" onclick="createOnlineRoom()">Create Private Room</button>
+          
+          <div class="supabase-notice" id="supabaseNotice">
+            <p><strong>⚡ Realtime Engine:</strong> Powered by Supabase Realtime backend. If self-hosting, configure keys in <code>ludo.js</code>.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Footer Action -->
+      <div class="modal-footer" id="localSetupFooter">
+        <button class="action-btn-gold w-full" id="startMatchBtn" onclick="confirmMatchSetup()">START MATCH</button>
       </div>
     </div>
   </div>
 
-  <!-- Winner Victory Modal -->
+  <!-- =========================================================================
+       MODAL 2: OPENING DICE ROUND (DETERMINE STARTING PLAYER)
+       ========================================================================= -->
+  <div class="modal-overlay hidden" id="openingRollModal">
+    <div class="modal-card roll-card">
+      <h2>OPENING DICE ROUND</h2>
+      <p id="openingRollDesc">Every player rolls once. The highest number takes the first turn!</p>
+
+      <div class="opening-rollers" id="openingRollersContainer">
+        <!-- Rendered dynamically for active players -->
+      </div>
+
+      <div class="opening-result-banner" id="openingResultBanner">
+        ROLLING FOR FIRST TURN...
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       MODAL 3: GAME RULES & GUIDE
+       ========================================================================= -->
+  <div class="modal-overlay hidden" id="rulesModal">
+    <div class="modal-card rules-card">
+      <div class="modal-brand">
+        <h2>HIDAMES LUDO RULES</h2>
+        <p>Official Ludo King Tournament Standards</p>
+      </div>
+
+      <div class="rules-scrollable">
+        <div class="rule-item">
+          <h4>🎲 Token Release</h4>
+          <p>A pawn can leave base only on rolling a <strong>6</strong>. Rolling a 6 grants an immediate extra roll.</p>
+        </div>
+        <div class="rule-item">
+          <h4>🚫 Three Consecutive Sixes</h4>
+          <p>Rolling three consecutive 6s in one turn cancels all movement from that sequence, passing the turn immediately.</p>
+        </div>
+        <div class="rule-item">
+          <h4>⚔️ Captures & Knockouts</h4>
+          <p>Landing exactly on an opponent's token sends it back to base and awards the capturing player a bonus roll.</p>
+        </div>
+        <div class="rule-item">
+          <h4>⭐ Safe Squares</h4>
+          <p>The 4 colored starting squares and 4 star-marked squares are 100% safe. Tokens on these cannot be captured.</p>
+        </div>
+        <div class="rule-item">
+          <h4>🛡️ Blockades</h4>
+          <p>Two tokens of the same color on a non-safe cell form a blockade. Opponents cannot pass through or land on it.</p>
+        </div>
+        <div class="rule-item">
+          <h4>🎯 Exact Finish</h4>
+          <p>Pawns must complete the outer track, enter their home lane, and reach the center goal with an <strong>exact dice roll</strong>.</p>
+        </div>
+        <div class="rule-item">
+          <h4>🤝 Team Matches</h4>
+          <p>In 2v2 or team modes, teammates cannot capture each other. The first team to get all members' tokens home wins!</p>
+        </div>
+      </div>
+
+      <button class="action-btn-gold w-full mt-4" onclick="closeRulesModal()">CLOSE RULES</button>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       MODAL 4: WINNER VICTORY CELEBRATION
+       ========================================================================= -->
   <div class="modal-overlay hidden" id="winnerModal">
     <div class="modal-card victory-card">
       <div class="trophy-bounce">🏆</div>
-      <h2 id="winnerText">VICTORY!</h2>
-      <p id="winnerSub">Congratulations to the Champion</p>
-      <button class="action-btn" onclick="location.reload()">PLAY AGAIN</button>
+      <h2 id="winnerText">CHAMPION!</h2>
+      <div class="winner-badge" id="winnerBadge"></div>
+      <p id="winnerSub">Congratulations on dominating the Hidames board!</p>
+      
+      <div class="victory-actions">
+        <button class="action-btn-gold" onclick="restartWithSameSettings()">PLAY AGAIN</button>
+        <button class="action-btn-secondary" onclick="openSetupModal()">CHANGE MODE</button>
+        <a href="exploregames.html" class="action-btn-subtle">BACK TO GAMES</a>
+      </div>
     </div>
   </div>
 
+  <!-- Game Script -->
   <script src="ludo.js"></script>
 </body>
 </html>
